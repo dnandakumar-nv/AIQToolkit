@@ -36,8 +36,7 @@ logger = logging.getLogger(__name__)
 class EmailPhishingAnalyzerConfig(FunctionBaseConfig, OptimizableMixin, name="email_phishing_analyzer"):
     _type: str = "email_phishing_analyzer"
     llm: LLMRef = OptimizableField(description="The LLM to use for email phishing analysis.",
-                                   default="llama_3_405",
-                                   space=SearchSpace(values=["llama_3_405", "llama_3_70"]))
+                                   default="llama_3_405")
     prompt: str = OptimizableField(
         description="The prompt template for analyzing email phishing. Use {body} to insert the email text.",
         default=phishing_prompt,
