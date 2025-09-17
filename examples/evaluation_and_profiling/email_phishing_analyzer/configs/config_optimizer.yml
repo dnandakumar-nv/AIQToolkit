@@ -24,6 +24,11 @@ general:
         _type: file
         path: ./.tmp/email_phishing_analyzer.log
         level: DEBUG
+    tracing:
+      weave:
+        _type: weave
+        project: "aiq-eval-demo"
+        entity: "nvidia-aiq"
 
 functions:
   email_phishing_analyzer:
@@ -31,6 +36,9 @@ functions:
     optimizable_params:
       - llm
       - prompt
+    search_space:
+      llm:
+        values: ["llama_3_405", "llama_3_70", "mistral_nemotron", "qwen_coder"]
   prompt_init:
     _type: prompt_init
     optimizer_llm: prompt_optimizer
@@ -41,6 +49,7 @@ functions:
     system_objective: Agent that triages an email to see if it is a phishing attempt or not.
 
 llms:
+  # These are the models we'll be testing
   llama_3_405:
     _type: nim
     model_name: meta/llama-3.1-405b-instruct
@@ -48,16 +57,25 @@ llms:
     max_tokens: 1024
     optimizable_params:
       - temperature
-      - top_p
-      - max_tokens
   llama_3_70:
     _type: nim
     model_name: meta/llama-3.1-70b-instruct
     max_tokens: 1024
     optimizable_params:
       - temperature
-      - top_p
-      - max_tokens
+  mistral_nemotron:
+    _type: nim
+    model_name: mistralai/mistral-nemotron
+    max_tokens: 1024
+    optimizable_params:
+      - temperature
+  qwen_coder:
+    _type: nim
+    model_name: qwen/qwen2.5-coder-32b-instruct
+    max_tokens: 1024
+    optimizable_params:
+      - temperature
+
   prompt_optimizer:
     _type: nim
     model_name: meta/llama-3.1-70b-instruct
@@ -96,7 +114,7 @@ eval:
       llm_name: prompt_optimizer
     llm_latency:
       _type: avg_llm_latency
-    token_efficiency:
+    token_usage:
       _type: avg_tokens_per_llm_end
 
 optimizer:
@@ -109,8 +127,8 @@ optimizer:
     rag_groundedness:
       evaluator_name: rag_groundedness
       direction: maximize
-    token_efficiency:
-      evaluator_name: token_efficiency
+    token_usage:
+      evaluator_name: token_usage
       direction: minimize
     latency:
       evaluator_name: llm_latency
@@ -119,10 +137,10 @@ optimizer:
 
   numeric:
     enabled: true
-    n_trials: 3
+    n_trials: 10
 
   prompt:
-    enabled: true
+    enabled: false
     prompt_population_init_function: prompt_init
     prompt_recombination_function: prompt_recombination
     ga_generations: 3
