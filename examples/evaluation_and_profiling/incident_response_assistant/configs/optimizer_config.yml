@@ -1,0 +1,159 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+functions:
+  incident_runbook_search:
+    _type: incident_runbook_search
+    runbook_path: examples/evaluation_and_profiling/incident_response_assistant/data/runbooks.json
+    top_k: 3
+  prompt_init:
+    _type: prompt_init
+    optimizer_llm: optimizer_coach
+    system_objective: Provide accurate, grounded incident response guidance that follows the best matching internal runbook.
+  prompt_recombination:
+    _type: prompt_recombiner
+    optimizer_llm: optimizer_coach
+    system_objective: Provide accurate, grounded incident response guidance that follows the best matching internal runbook.
+
+llms:
+  incident_commander:
+    _type: nim
+    model_name: meta/llama-3.1-70b-instruct
+    temperature: 0.2
+    max_tokens: 1024
+    top_p: 0.75
+    optimizable_params:
+      - temperature
+      - top_p
+      - max_tokens
+  evaluation_judge:
+    _type: nim
+    model_name: meta/llama-3.1-70b-instruct
+    temperature: 0.0
+    max_tokens: 8
+  trajectory_judge:
+    _type: nim
+    model_name: meta/llama-3.1-70b-instruct
+    temperature: 0.0
+    max_tokens: 1024
+  optimizer_coach:
+    _type: nim
+    model_name: meta/llama-3.1-70b-instruct
+    temperature: 0.6
+    max_tokens: 2048
+
+workflow:
+  _type: react_agent
+  tool_names:
+    - incident_runbook_search
+  llm_name: incident_commander
+  verbose: true
+  parse_agent_response_max_retries: 2
+  additional_instructions: |
+    You are coordinating incident response. Follow the runbook search results and respond in JSON.
+
+    JSON schema:
+    {
+      "recommended_runbook_id": string,
+      "summary": string,
+      "action_plan": string[],
+      "communications": string,
+      "metric_to_watch": string,
+      "confidence": number
+    }
+
+    Always cite evidence for why the runbook matches and do not invent steps that conflict with the retrieved material.
+
+eval:
+  general:
+    output:
+      dir: ./.tmp/nat/examples/evaluation_and_profiling/incident_response_assistant/optimizer_eval
+      cleanup: true
+    dataset:
+      _type: json
+      file_path: examples/evaluation_and_profiling/incident_response_assistant/data/eval_dataset.json
+      id_key: id
+      structure:
+        question_key: question
+        answer_key: answer
+        context_key: contexts
+    profiler:
+      workflow_runtime_forecast: true
+      compute_llm_metrics: true
+      token_uniqueness_forecast: true
+      csv_exclude_io_text: true
+      prompt_caching_prefixes:
+        enable: true
+        min_frequency: 0.2
+      bottleneck_analysis:
+        enable_nested_stack: true
+      concurrency_spike_analysis:
+        enable: true
+        spike_threshold: 5
+
+  evaluators:
+    rag_accuracy:
+      _type: ragas
+      metric: AnswerAccuracy
+      llm_name: evaluation_judge
+    rag_groundedness:
+      _type: ragas
+      metric: ResponseGroundedness
+      llm_name: evaluation_judge
+    rag_relevance:
+      _type: ragas
+      metric: ContextRelevance
+      llm_name: evaluation_judge
+    trajectory_accuracy:
+      _type: trajectory
+      llm_name: trajectory_judge
+    llm_latency:
+      _type: avg_llm_latency
+    token_efficiency:
+      _type: avg_tokens_per_llm_end
+
+optimizer:
+  output_path: ./.tmp/examples/evaluation_and_profiling/incident_response_assistant/optimizer
+  reps_per_param_set: 1
+  eval_metrics:
+    rag_accuracy:
+      evaluator_name: rag_accuracy
+      direction: maximize
+    rag_groundedness:
+      evaluator_name: rag_groundedness
+      direction: maximize
+    rag_relevance:
+      evaluator_name: rag_relevance
+      direction: maximize
+    token_efficiency:
+      evaluator_name: token_efficiency
+      direction: minimize
+    latency:
+      evaluator_name: llm_latency
+      direction: minimize
+
+  numeric:
+    enabled: true
+    n_trials: 6
+
+  prompt:
+    enabled: true
+    prompt_population_init_function: prompt_init
+    prompt_recombination_function: prompt_recombination
+    ga_generations: 3
+    ga_population_size: 4
+    ga_parallel_evaluations: 2
+    ga_diversity_lambda: 0.25
+
