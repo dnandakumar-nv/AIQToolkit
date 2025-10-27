@@ -17,6 +17,45 @@ import asyncio
 import logging
 from collections.abc import Mapping as Dict
 
+# Pre-emptively patch nest_asyncio to handle uvloop before any library imports it
+# This must be done at module level to ensure it happens before ragas imports
+_nest_asyncio_patched = False
+
+
+def _patch_nest_asyncio():
+    """Patch nest_asyncio to handle uvloop gracefully."""
+    global _nest_asyncio_patched
+    if _nest_asyncio_patched:
+        return
+
+    try:
+        import nest_asyncio
+        original_apply = nest_asyncio.apply
+
+        def safe_apply(loop=None):
+            """Safe version of nest_asyncio.apply that doesn't fail on uvloop."""
+            try:
+                return original_apply(loop)
+            except ValueError as e:
+                if "uvloop" in str(e):
+                    # Silently ignore uvloop patching attempts
+                    import logging
+                    logging.getLogger(__name__).debug(
+                        "Ignoring nest_asyncio.apply() on uvloop"
+                    )
+                else:
+                    raise
+
+        # Replace the apply function globally
+        nest_asyncio.apply = safe_apply
+        _nest_asyncio_patched = True
+    except ImportError:
+        # nest_asyncio not installed, that's fine
+        pass
+
+# Apply the patch immediately
+_patch_nest_asyncio()
+
 import optuna
 import yaml
 
@@ -96,13 +135,37 @@ def optimize_parameters(
             tasks = [_single_eval(i) for i in range(reps)]
             return await asyncio.gather(*tasks)
 
-        with (out_dir / f"config_numeric_trial_{trial._trial_id}.yml").open("w") as fh:
+        # Save trial config (using _trial_id as Optuna's public API doesn't expose trial id)
+        config_path = out_dir / f"config_numeric_trial_{trial._trial_id}.yml"
+        with config_path.open("w") as fh:
             yaml.dump(cfg_trial.model_dump(), fh)
 
-        all_scores = asyncio.run(_run_all_evals())
+        # Run in a separate thread to avoid event loop conflicts
+        import concurrent.futures
+        
+        def run_async_in_thread():
+            """Run async code in a separate thread with standard asyncio loop."""
+            # Ensure this thread uses standard asyncio, not uvloop
+            import asyncio
+            
+            # Force standard event loop policy for this thread
+            asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+            
+            # Re-apply our nest_asyncio patch in this thread
+            _patch_nest_asyncio()
+            
+            # Now any imports that happen will use the patched version
+            return asyncio.run(_run_all_evals())
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(run_async_in_thread)
+            all_scores = future.result()
         # Persist raw per‑repetition scores so they appear in `trials_dataframe`.
         trial.set_user_attr("rep_scores", all_scores)
-        return [sum(run[i] for run in all_scores) / reps for i in range(len(eval_metrics))]
+        return [
+            sum(run[i] for run in all_scores) / reps
+            for i in range(len(eval_metrics))
+        ]
 
     logger.info("Starting numeric / enum parameter optimization...")
     study.optimize(_objective, n_trials=optimizer_config.numeric.n_trials)

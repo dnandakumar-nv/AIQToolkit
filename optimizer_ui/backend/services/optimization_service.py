@@ -5,6 +5,26 @@
 Service for managing optimization runs with progress tracking.
 """
 
+# Pre-emptively patch nest_asyncio to handle uvloop before any imports
+try:
+    import nest_asyncio
+    original_apply = nest_asyncio.apply
+    
+    def safe_apply(loop=None):
+        """Safe version that doesn't fail on uvloop."""
+        try:
+            return original_apply(loop)
+        except ValueError as e:
+            if "uvloop" in str(e):
+                # Silently ignore uvloop patching attempts
+                pass
+            else:
+                raise
+    
+    nest_asyncio.apply = safe_apply
+except ImportError:
+    pass
+
 import asyncio
 import logging
 import uuid
@@ -12,7 +32,6 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from nat.data_models.config import Config
 from nat.data_models.optimizer import OptimizerRunConfig
 from nat.profiler.parameter_optimization.optimizer_runtime import optimize_config
 
@@ -129,11 +148,12 @@ class OptimizationService:
 
             # Start progress monitoring task
             monitor_task = asyncio.create_task(
-                self._monitor_progress(run_id, opt_run_config.config_file.optimizer.output_path)
+                self._monitor_progress(run_id, config_obj.optimizer.output_path)
             )
 
             # Run optimization
             result = await optimize_config(opt_run_config)
+            logger.info("Optimization completed with result: %s", result)
 
             # Cancel monitor task
             monitor_task.cancel()

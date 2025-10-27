@@ -276,6 +276,24 @@ If port 8080 is already in use, edit `start.sh`/`start.bat` and change the port:
 ```
 Then access the UI at http://localhost:8081
 
+### Failed to Fetch Error on File Upload
+If you see a "failed to fetch" error when uploading configuration files:
+
+1. **Check Backend is Running**: The UI will show a notification on page load if it cannot connect to the backend
+   - Ensure you ran `./start.sh` (macOS/Linux) or `start.bat` (Windows)
+   - Check the terminal for any error messages
+   - Try accessing http://localhost:8080/api/health directly in your browser
+
+2. **Access UI Correctly**: Always access the UI through http://localhost:8080, not by opening the HTML file directly
+   - ✅ Correct: http://localhost:8080
+   - ❌ Wrong: file:///path/to/optimizer_ui/frontend/index.html
+
+3. **Check Browser Console**: Press F12 and check the Console tab for detailed error messages
+   - Network errors indicate the backend is not reachable
+   - CORS errors suggest accessing from wrong origin
+
+4. **Restart the Server**: Stop the server (Ctrl+C) and restart it with `./start.sh`
+
 ### WebSocket Connection Failed
 - Ensure the backend is running
 - Check browser console for errors
@@ -290,6 +308,18 @@ Then access the UI at http://localhost:8081
 - Validate configuration using the /api/config/validate endpoint
 - Ensure all required fields are present in optimizer config
 - Check that optimizable parameters have valid search spaces
+
+### Asyncio/Event Loop Errors
+If you see errors like:
+- `RuntimeError: asyncio.run() cannot be called from a running event loop`
+- `ValueError: Can't patch loop of type <class 'uvloop.Loop'>`
+
+These are caused by conflicts between the UI's async server and optimization libraries. The system automatically handles these by:
+1. Running optimization in a separate thread
+2. Using standard asyncio event loops for compatibility with libraries like ragas
+3. Preserving uvloop performance for the main server
+
+If issues persist, check the backend logs for detailed error messages.
 
 ## Development
 

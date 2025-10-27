@@ -22,6 +22,35 @@ class OptimizerApp {
     async init() {
         this.setupNavigation();
         this.setupMonacoEditor();
+        this.checkBackendConnection();
+    }
+
+    async checkBackendConnection() {
+        try {
+            console.log('Checking backend connection...');
+            const response = await fetch(`${API_BASE}/health`, {
+                method: 'GET',
+            }).catch(error => {
+                console.error('Backend connection check failed:', error);
+                throw error;
+            });
+
+            if (!response.ok) {
+                throw new Error(`Backend returned status ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Backend health check successful:', data);
+            // Show success notification only in development/debug mode
+            // this.showNotification('✓ Backend connected', 'success', 2000);
+        } catch (error) {
+            this.showNotification(
+                `⚠️ Cannot connect to backend server at ${API_BASE}. Please ensure the server is running.`,
+                'error',
+                10000  // Show for 10 seconds
+            );
+            console.error('Backend connection error:', error);
+        }
     }
 
     setupNavigation() {
@@ -79,11 +108,14 @@ class OptimizerApp {
             const response = await fetch(`${API_BASE}/config/load`, {
                 method: 'POST',
                 body: formData,
+            }).catch(error => {
+                console.error('Network error:', error);
+                throw new Error(`Network error: ${error.message}. Please ensure the backend server is running on http://localhost:8080`);
             });
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
-                throw new Error(errorData.detail || 'Failed to load config');
+                throw new Error(errorData.detail || `HTTP ${response.status}: Failed to load config`);
             }
 
             const data = await response.json();
@@ -126,11 +158,14 @@ class OptimizerApp {
         try {
             const response = await fetch(`${API_BASE}/config/load-from-path?path=${encodeURIComponent(path)}`, {
                 method: 'POST',
+            }).catch(error => {
+                console.error('Network error:', error);
+                throw new Error(`Network error: ${error.message}. Please ensure the backend server is running on http://localhost:8080`);
             });
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
-                throw new Error(errorData.detail || 'Failed to load config');
+                throw new Error(errorData.detail || `HTTP ${response.status}: Failed to load config`);
             }
 
             const data = await response.json();
@@ -587,7 +622,7 @@ class OptimizerApp {
         window.open(`${API_BASE}/results/${this.currentRunId}/download/config`, '_blank');
     }
 
-    showNotification(message, type = 'info') {
+    showNotification(message, type = 'info', duration = 5000) {
         const notification = document.createElement('div');
         notification.className = 'notification';
 
@@ -610,9 +645,42 @@ class OptimizerApp {
 
         setTimeout(() => {
             notification.remove();
-        }, 5000);
+        }, duration);
     }
 }
 
 // Initialize app when DOM is ready
-const app = new OptimizerApp();
+document.addEventListener('DOMContentLoaded', () => {
+    const app = new OptimizerApp();
+    
+    // Attach event handlers for file upload and path loading
+    const configFile = document.getElementById('config-file');
+    if (configFile) {
+        configFile.addEventListener('change', (e) => app.handleFileUpload(e));
+    }
+    
+    const loadPathBtn = document.getElementById('load-path-btn');
+    if (loadPathBtn) {
+        loadPathBtn.addEventListener('click', () => app.loadFromPath());
+    }
+    
+    const startBtn = document.getElementById('start-btn');
+    if (startBtn) {
+        startBtn.addEventListener('click', () => app.startOptimization());
+    }
+    
+    const stopBtn = document.getElementById('stop-btn');
+    if (stopBtn) {
+        stopBtn.addEventListener('click', () => app.stopOptimization());
+    }
+    
+    const refreshInsightsBtn = document.getElementById('refresh-insights-btn');
+    if (refreshInsightsBtn) {
+        refreshInsightsBtn.addEventListener('click', () => app.refreshInsights());
+    }
+    
+    const downloadResultsBtn = document.getElementById('download-results-btn');
+    if (downloadResultsBtn) {
+        downloadResultsBtn.addEventListener('click', () => app.downloadConfig());
+    }
+});

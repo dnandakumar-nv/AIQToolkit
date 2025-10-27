@@ -15,8 +15,13 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
 
+from optimizer_ui.backend.services import get_optimization_service
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Get the shared optimization service instance
+optimization_service = get_optimization_service()
 
 
 @router.get("/{run_id}/summary")
@@ -25,8 +30,12 @@ async def get_results_summary(run_id: str) -> dict[str, Any]:
     Get a summary of optimization results.
     """
     try:
-        # Look for results in the output directory
-        output_dir = Path(f"optimizer_results/{run_id}")
+        # Get the actual output path from the optimization service
+        run_status = optimization_service.get_status(run_id)
+        if not run_status or "result_path" not in run_status:
+            raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+        output_dir = Path(run_status["result_path"])
 
         if not output_dir.exists():
             raise HTTPException(status_code=404, detail=f"Results for run {run_id} not found")
@@ -69,7 +78,12 @@ async def get_trials_data(run_id: str) -> dict[str, Any]:
     Get detailed trials data for visualization.
     """
     try:
-        output_dir = Path(f"optimizer_results/{run_id}")
+        # Get the actual output path from the optimization service
+        run_status = optimization_service.get_status(run_id)
+        if not run_status or "result_path" not in run_status:
+            raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+        output_dir = Path(run_status["result_path"])
         trials_csv = output_dir / "trials_dataframe_params.csv"
 
         if not trials_csv.exists():
@@ -115,7 +129,12 @@ async def get_visualizations(run_id: str) -> dict[str, Any]:
     Get all available visualizations for a run.
     """
     try:
-        output_dir = Path(f"optimizer_results/{run_id}")
+        # Get the actual output path from the optimization service
+        run_status = optimization_service.get_status(run_id)
+        if not run_status or "result_path" not in run_status:
+            raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+        output_dir = Path(run_status["result_path"])
         plots_dir = output_dir / "plots"
 
         if not output_dir.exists():
@@ -154,7 +173,12 @@ async def download_file(run_id: str, file_type: str):
     file_type can be: config, trials, pareto_2d, pareto_parallel, pareto_pairwise
     """
     try:
-        output_dir = Path(f"optimizer_results/{run_id}")
+        # Get the actual output path from the optimization service
+        run_status = optimization_service.get_status(run_id)
+        if not run_status or "result_path" not in run_status:
+            raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+        output_dir = Path(run_status["result_path"])
 
         file_map = {
             "config": output_dir / "optimized_config.yml",
@@ -191,7 +215,12 @@ async def get_insights(run_id: str) -> dict[str, Any]:
     Get AI-powered insights from optimization results.
     """
     try:
-        output_dir = Path(f"optimizer_results/{run_id}")
+        # Get the actual output path from the optimization service
+        run_status = optimization_service.get_status(run_id)
+        if not run_status or "result_path" not in run_status:
+            raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+        output_dir = Path(run_status["result_path"])
         trials_csv = output_dir / "trials_dataframe_params.csv"
 
         if not trials_csv.exists():

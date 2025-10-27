@@ -49,16 +49,10 @@ llms:
       - temperature
       - top_p
       - max_tokens
-      - model_name
-    search_space:
-      model_name:
-        values:
-          - meta/llama-3.1-405b-instruct
-          - meta/llama-3.1-70b-instruct
 
   prompt_optimizer:
     _type: nim
-    model_name: meta/llama-3.1-70b-instruct
+    model_name: meta/llama-3.3-70b-instruct
     temperature: 0.5
     max_tokens: 2048
 
@@ -117,10 +111,10 @@ optimizer:
 
   numeric:
     enabled: true
-    n_trials: 3
+    n_trials: 2
 
   prompt:
-    enabled: true
+    enabled: false
     prompt_population_init_function: prompt_init
     prompt_recombination_function: prompt_recombination
     ga_generations: 3

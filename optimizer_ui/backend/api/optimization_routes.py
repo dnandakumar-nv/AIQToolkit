@@ -16,13 +16,13 @@ from fastapi import WebSocket
 from fastapi import WebSocketDisconnect
 from pydantic import BaseModel
 
-from optimizer_ui.backend.services.optimization_service import OptimizationService
+from optimizer_ui.backend.services import get_optimization_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# Global optimization service instance
-optimization_service = OptimizationService()
+# Get the shared optimization service instance
+optimization_service = get_optimization_service()
 
 
 class StartOptimizationRequest(BaseModel):
