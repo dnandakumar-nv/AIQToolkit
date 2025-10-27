@@ -21,19 +21,19 @@ PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
 echo "✓ Python version: $PYTHON_VERSION"
 
 # Check if virtual environment exists
-if [ ! -d "venv" ]; then
-    echo "📦 Creating virtual environment..."
-    python3 -m venv venv
-fi
-
-# Activate virtual environment
-echo "🔧 Activating virtual environment..."
-source venv/bin/activate
+#if [ ! -d "venv" ]; then
+#    echo "📦 Creating virtual environment..."
+#    python3 -m venv venv
+#fi
+#
+## Activate virtual environment
+#echo "🔧 Activating virtual environment..."
+#source venv/bin/activate
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-pip install -q --upgrade pip
-pip install -q -r requirements.txt
+uv pip install -q --upgrade pip
+uv pip install -r requirements.txt
 
 # Navigate to parent directory to ensure NAT is importable
 cd ..

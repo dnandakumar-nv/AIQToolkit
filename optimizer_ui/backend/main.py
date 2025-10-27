@@ -57,10 +57,10 @@ app.include_router(config_routes.router, prefix="/api/config", tags=["config"])
 app.include_router(optimization_routes.router, prefix="/api/optimization", tags=["optimization"])
 app.include_router(results_routes.router, prefix="/api/results", tags=["results"])
 
-# Serve static files (frontend build) in production
-frontend_build_path = Path(__file__).parent.parent / "frontend" / "dist"
-if frontend_build_path.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_build_path), html=True), name="static")
+# Serve static files (frontend)
+frontend_path = Path(__file__).parent.parent / "frontend"
+if frontend_path.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="static")
 
 
 @app.get("/api/health")

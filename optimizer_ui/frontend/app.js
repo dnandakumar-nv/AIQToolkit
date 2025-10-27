@@ -89,15 +89,30 @@ class OptimizerApp {
                 body: formData,
             });
 
-            if (!response.ok) throw new Error('Failed to load config');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+                throw new Error(errorData.detail || 'Failed to load config');
+            }
 
             const data = await response.json();
+            console.log('Received config data:', { 
+                hasConfig: !!data.config, 
+                hasParams: !!data.optimizable_params,
+                paramCount: Object.keys(data.optimizable_params || {}).length
+            });
+
             this.config = data.config;
-            this.optimizableParams = data.optimizable_params;
+            this.optimizableParams = data.optimizable_params || {};
 
             // Update editor
             if (this.editor) {
-                this.editor.setValue(jsyaml.dump(data.config, { lineWidth: -1 }));
+                try {
+                    const yamlStr = jsyaml.dump(data.config, { lineWidth: -1 });
+                    this.editor.setValue(yamlStr);
+                } catch (yamlError) {
+                    console.error('Error converting config to YAML:', yamlError);
+                    this.editor.setValue(JSON.stringify(data.config, null, 2));
+                }
             }
 
             // Show cards
@@ -107,10 +122,10 @@ class OptimizerApp {
             // Render parameters
             this.renderParameters();
 
-            this.showNotification('Configuration loaded successfully!', 'success');
+            this.showNotification(`Configuration loaded successfully! Found ${Object.keys(this.optimizableParams).length} optimizable parameters.`, 'success');
         } catch (error) {
             console.error('Error loading config:', error);
-            this.showNotification('Error loading configuration', 'error');
+            this.showNotification(`Error loading configuration: ${error.message}`, 'error');
         }
     }
 
@@ -128,15 +143,30 @@ class OptimizerApp {
                 method: 'POST',
             });
 
-            if (!response.ok) throw new Error('Failed to load config');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+                throw new Error(errorData.detail || 'Failed to load config');
+            }
 
             const data = await response.json();
+            console.log('Received config data:', { 
+                hasConfig: !!data.config, 
+                hasParams: !!data.optimizable_params,
+                paramCount: Object.keys(data.optimizable_params || {}).length
+            });
+
             this.config = data.config;
-            this.optimizableParams = data.optimizable_params;
+            this.optimizableParams = data.optimizable_params || {};
 
             // Update editor
             if (this.editor) {
-                this.editor.setValue(jsyaml.dump(data.config, { lineWidth: -1 }));
+                try {
+                    const yamlStr = jsyaml.dump(data.config, { lineWidth: -1 });
+                    this.editor.setValue(yamlStr);
+                } catch (yamlError) {
+                    console.error('Error converting config to YAML:', yamlError);
+                    this.editor.setValue(JSON.stringify(data.config, null, 2));
+                }
             }
 
             // Show cards
@@ -146,10 +176,10 @@ class OptimizerApp {
             // Render parameters
             this.renderParameters();
 
-            this.showNotification('Configuration loaded successfully!', 'success');
+            this.showNotification(`Configuration loaded successfully! Found ${Object.keys(this.optimizableParams).length} optimizable parameters.`, 'success');
         } catch (error) {
             console.error('Error loading config:', error);
-            this.showNotification('Error loading configuration from path', 'error');
+            this.showNotification(`Error loading configuration from path: ${error.message}`, 'error');
         }
     }
 
@@ -157,10 +187,22 @@ class OptimizerApp {
         const container = document.getElementById('params-list');
         const paramCount = document.getElementById('param-count');
 
+        if (!this.optimizableParams) {
+            console.error('optimizableParams is null or undefined');
+            paramCount.textContent = '0 parameters';
+            container.innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">No optimizable parameters found</p>';
+            return;
+        }
+
         const paramKeys = Object.keys(this.optimizableParams);
         paramCount.textContent = `${paramKeys.length} parameters`;
 
         container.innerHTML = '';
+
+        if (paramKeys.length === 0) {
+            container.innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">No optimizable parameters found</p>';
+            return;
+        }
 
         paramKeys.forEach(key => {
             const param = this.optimizableParams[key];
