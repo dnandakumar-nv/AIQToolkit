@@ -9,9 +9,10 @@ const API_BASE = 'http://localhost:8080/api';
 
 class OptimizerApp {
     constructor() {
-        this.config = null;
+        this.configPath = null;  // Store config file path instead of config dict
+        this.configFilename = null;
         this.optimizableParams = null;
-        this.editor = null;
+        this.editor = null;  // For read-only viewing
         this.currentRunId = null;
         this.ws = null;
 
@@ -53,23 +54,14 @@ class OptimizerApp {
 
         require(['vs/editor/editor.main'], () => {
             this.editor = monaco.editor.create(document.getElementById('editor-container'), {
-                value: '# Load a configuration file to begin',
+                value: '# Load a configuration file to view its contents\n# Editing is disabled - config files are loaded directly',
                 language: 'yaml',
                 theme: 'vs-dark',
                 automaticLayout: true,
                 minimap: { enabled: false },
                 fontSize: 13,
                 scrollBeyondLastLine: false,
-            });
-
-            this.editor.onDidChangeModelContent(() => {
-                if (this.config) {
-                    try {
-                        this.config = jsyaml.load(this.editor.getValue());
-                    } catch (e) {
-                        console.error('YAML parse error:', e);
-                    }
-                }
+                readOnly: true,  // Make editor read-only
             });
         });
     }
@@ -95,25 +87,15 @@ class OptimizerApp {
             }
 
             const data = await response.json();
-            console.log('Received config data:', { 
-                hasConfig: !!data.config, 
-                hasParams: !!data.optimizable_params,
-                paramCount: Object.keys(data.optimizable_params || {}).length
-            });
+            console.log('Received config data:', data);
 
-            this.config = data.config;
+            // Store config path instead of config dict
+            this.configPath = data.config_path;
+            this.configFilename = data.config_filename;
             this.optimizableParams = data.optimizable_params || {};
 
-            // Update editor
-            if (this.editor) {
-                try {
-                    const yamlStr = jsyaml.dump(data.config, { lineWidth: -1 });
-                    this.editor.setValue(yamlStr);
-                } catch (yamlError) {
-                    console.error('Error converting config to YAML:', yamlError);
-                    this.editor.setValue(JSON.stringify(data.config, null, 2));
-                }
-            }
+            // Load raw config for read-only viewing
+            await this.loadConfigContent(this.configFilename);
 
             // Show cards
             document.getElementById('config-editor-card').style.display = 'block';
@@ -122,7 +104,10 @@ class OptimizerApp {
             // Render parameters
             this.renderParameters();
 
-            this.showNotification(`Configuration loaded successfully! Found ${Object.keys(this.optimizableParams).length} optimizable parameters.`, 'success');
+            this.showNotification(
+                `Configuration loaded: ${data.config_filename} (${data.num_numeric_params} numeric, ${data.num_prompt_params} prompt parameters)`,
+                'success'
+            );
         } catch (error) {
             console.error('Error loading config:', error);
             this.showNotification(`Error loading configuration: ${error.message}`, 'error');
@@ -149,25 +134,15 @@ class OptimizerApp {
             }
 
             const data = await response.json();
-            console.log('Received config data:', { 
-                hasConfig: !!data.config, 
-                hasParams: !!data.optimizable_params,
-                paramCount: Object.keys(data.optimizable_params || {}).length
-            });
+            console.log('Received config data:', data);
 
-            this.config = data.config;
+            // Store config path instead of config dict
+            this.configPath = data.config_path;
+            this.configFilename = data.config_filename;
             this.optimizableParams = data.optimizable_params || {};
 
-            // Update editor
-            if (this.editor) {
-                try {
-                    const yamlStr = jsyaml.dump(data.config, { lineWidth: -1 });
-                    this.editor.setValue(yamlStr);
-                } catch (yamlError) {
-                    console.error('Error converting config to YAML:', yamlError);
-                    this.editor.setValue(JSON.stringify(data.config, null, 2));
-                }
-            }
+            // Load raw config for read-only viewing
+            await this.loadConfigContent(data.config_path);
 
             // Show cards
             document.getElementById('config-editor-card').style.display = 'block';
@@ -176,10 +151,36 @@ class OptimizerApp {
             // Render parameters
             this.renderParameters();
 
-            this.showNotification(`Configuration loaded successfully! Found ${Object.keys(this.optimizableParams).length} optimizable parameters.`, 'success');
+            this.showNotification(
+                `Configuration loaded: ${data.config_filename} (${data.num_numeric_params} numeric, ${data.num_prompt_params} prompt parameters)`,
+                'success'
+            );
         } catch (error) {
             console.error('Error loading config:', error);
             this.showNotification(`Error loading configuration from path: ${error.message}`, 'error');
+        }
+    }
+
+    async loadConfigContent(configId) {
+        /**
+         * Load the raw config content for read-only display
+         */
+        try {
+            const response = await fetch(`${API_BASE}/config/view/${encodeURIComponent(configId)}`);
+            if (!response.ok) throw new Error('Failed to load config content');
+
+            const data = await response.json();
+
+            // Update editor with raw content (read-only)
+            if (this.editor) {
+                this.editor.setValue(data.content);
+                this.editor.updateOptions({ readOnly: true });
+            }
+        } catch (error) {
+            console.error('Error loading config content:', error);
+            if (this.editor) {
+                this.editor.setValue('# Could not load config file content');
+            }
         }
     }
 
@@ -266,47 +267,14 @@ class OptimizerApp {
     }
 
     async saveConfig() {
-        if (!this.config) {
-            this.showNotification('No configuration to save', 'error');
-            return;
-        }
-
-        const path = prompt('Enter save path:', 'optimized_config.yaml');
-        if (!path) return;
-
-        try {
-            const response = await fetch(`${API_BASE}/config/save`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    config: this.config,
-                    config_path: path,
-                }),
-            });
-
-            if (!response.ok) throw new Error('Failed to save config');
-
-            this.showNotification('Configuration saved successfully!', 'success');
-        } catch (error) {
-            console.error('Error saving config:', error);
-            this.showNotification('Error saving configuration', 'error');
-        }
+        // Config editing removed - configs are now read-only
+        this.showNotification('Config editing disabled. Configs are loaded directly from files and remain unchanged.', 'info');
     }
 
     async startOptimization() {
-        if (!this.config) {
+        if (!this.configPath) {
             this.showNotification('Please load a configuration first', 'error');
             return;
-        }
-
-        // Get latest config from editor
-        if (this.editor) {
-            try {
-                this.config = jsyaml.load(this.editor.getValue());
-            } catch (e) {
-                this.showNotification('Invalid YAML in editor', 'error');
-                return;
-            }
         }
 
         this.showNotification('Starting optimization...', 'info');
@@ -316,11 +284,14 @@ class OptimizerApp {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    config: this.config,
+                    config_path: this.configPath,
                 }),
             });
 
-            if (!response.ok) throw new Error('Failed to start optimization');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+                throw new Error(errorData.detail || 'Failed to start optimization');
+            }
 
             const data = await response.json();
             this.currentRunId = data.run_id;
@@ -338,7 +309,7 @@ class OptimizerApp {
             this.showNotification('Optimization started!', 'success');
         } catch (error) {
             console.error('Error starting optimization:', error);
-            this.showNotification('Error starting optimization', 'error');
+            this.showNotification(`Error starting optimization: ${error.message}`, 'error');
         }
     }
 

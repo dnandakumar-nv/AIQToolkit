@@ -31,23 +31,32 @@ class OptimizationService:
 
     async def start_optimization(
         self,
-        config: dict[str, Any],
+        config_path: str,
         dataset_path: str | None = None,
         result_json_path: str = "$",
         endpoint: str | None = None,
         endpoint_timeout: int = 300,
     ) -> str:
         """
-        Start a new optimization run.
+        Start a new optimization run using a config file path.
+
+        Args:
+            config_path: Absolute path to the configuration file
 
         Returns:
             run_id: Unique identifier for this optimization run
         """
         run_id = str(uuid.uuid4())[:8]
 
-        # Validate and create config object
+        # Validate config file exists
+        config_file_path = Path(config_path)
+        if not config_file_path.exists():
+            raise ValueError(f"Config file not found: {config_path}")
+
+        # Load config to validate and get optimizer settings
         try:
-            config_obj = Config.model_validate(config)
+            from nat.runtime.loader import load_config
+            config_obj = load_config(config_file=config_file_path)
         except Exception as e:
             logger.error(f"Invalid config: {e}")
             raise ValueError(f"Invalid configuration: {str(e)}")
@@ -55,10 +64,19 @@ class OptimizationService:
         # Ensure output path is set
         if config_obj.optimizer.output_path is None:
             config_obj.optimizer.output_path = Path(f"optimizer_results/{run_id}")
+            # We need to update the config file with the output path
+            import yaml
+            with config_file_path.open("r") as f:
+                config_dict = yaml.safe_load(f)
+            if "optimizer" not in config_dict:
+                config_dict["optimizer"] = {}
+            config_dict["optimizer"]["output_path"] = str(config_obj.optimizer.output_path)
+            with config_file_path.open("w") as f:
+                yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False)
 
-        # Create OptimizerRunConfig
+        # Create OptimizerRunConfig with file path instead of config object
         opt_run_config = OptimizerRunConfig(
-            config_file=config_obj,
+            config_file=config_file_path,  # Pass the path directly
             dataset=dataset_path,
             result_json_path=result_json_path,
             endpoint=endpoint,
@@ -74,7 +92,7 @@ class OptimizationService:
             "total_trials": None,
             "message": "Starting optimization...",
             "result_path": str(config_obj.optimizer.output_path),
-            "config": config,
+            "config_path": config_path,
         }
 
         # Start optimization task
@@ -96,9 +114,10 @@ class OptimizationService:
             self.runs[run_id]["message"] = "Optimization in progress..."
             await self._send_update(run_id, self.runs[run_id])
 
-            # Extract total trials from config
-            config_obj = opt_run_config.config_file
-            if isinstance(config_obj, Config) and config_obj.optimizer.numeric.enabled:
+            # Load config to extract total trials
+            from nat.runtime.loader import load_config
+            config_obj = load_config(config_file=opt_run_config.config_file)
+            if config_obj.optimizer.numeric.enabled:
                 self.runs[run_id]["total_trials"] = config_obj.optimizer.numeric.n_trials
 
             # Run optimization with progress callback
@@ -153,6 +172,10 @@ class OptimizationService:
         last_trial_count = 0
 
         try:
+            # Ensure output path exists
+            output_path = Path(output_path)
+            output_path.mkdir(parents=True, exist_ok=True)
+
             while True:
                 await asyncio.sleep(5)  # Check every 5 seconds
 

@@ -27,7 +27,7 @@ optimization_service = OptimizationService()
 
 class StartOptimizationRequest(BaseModel):
     """Request model for starting optimization."""
-    config: dict[str, Any]
+    config_path: str  # Changed from config dict to config file path
     dataset_path: str | None = None
     result_json_path: str = "$"
     endpoint: str | None = None
@@ -51,8 +51,14 @@ async def start_optimization(request: StartOptimizationRequest) -> dict[str, str
     Start a new optimization run.
     """
     try:
+        # Verify config file exists
+        from pathlib import Path
+        config_path = Path(request.config_path)
+        if not config_path.exists():
+            raise HTTPException(status_code=404, detail=f"Config file not found: {request.config_path}")
+
         run_id = await optimization_service.start_optimization(
-            config=request.config,
+            config_path=str(config_path.absolute()),
             dataset_path=request.dataset_path,
             result_json_path=request.result_json_path,
             endpoint=request.endpoint,
@@ -64,8 +70,10 @@ async def start_optimization(request: StartOptimizationRequest) -> dict[str, str
             "message": "Optimization started",
             "status": "running",
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error starting optimization: {e}")
+        logger.error(f"Error starting optimization: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error starting optimization: {str(e)}")
 
 

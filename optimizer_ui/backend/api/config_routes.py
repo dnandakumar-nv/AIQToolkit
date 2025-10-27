@@ -7,6 +7,7 @@ Configuration management API routes.
 
 import json
 import logging
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -24,36 +25,46 @@ from nat.runtime.loader import load_config
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# Temporary directory for uploaded configs
+UPLOAD_DIR = Path("optimizer_ui_uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
+
 
 class ConfigResponse(BaseModel):
     """Response model for config data."""
-    config: dict[str, Any]
+    config_path: str
+    config_filename: str
     optimizable_params: dict[str, Any]
-    config_path: str | None = None
-
-
-class UpdateConfigRequest(BaseModel):
-    """Request model for updating config."""
-    config: dict[str, Any]
-    config_path: str | None = None
+    num_numeric_params: int
+    num_prompt_params: int
 
 
 @router.post("/load")
 async def load_config_file(file: UploadFile):
     """
     Load a configuration file and extract optimizable parameters.
+    Saves the file to disk and returns the path (no serialization/deserialization).
     """
     logger.info(f"Received file upload request: {file.filename}")
     try:
+        # Save uploaded file to disk
         content = await file.read()
         logger.info(f"Read {len(content)} bytes from file")
-        config_dict = yaml.safe_load(content)
-        logger.info(f"Parsed YAML successfully")
 
-        # Load config using NAT's loader
-        config_obj: Config = Config.model_validate(config_dict)
+        # Save to upload directory with original filename
+        safe_filename = Path(file.filename).name  # Get just the filename, no path
+        upload_path = UPLOAD_DIR / safe_filename
 
-        # Extract optimizable parameters
+        with upload_path.open("wb") as f:
+            f.write(content)
+
+        logger.info(f"Saved uploaded file to {upload_path}")
+
+        # Validate the config by loading it
+        config_obj: Config = load_config(config_file=upload_path)
+        logger.info("Config loaded and validated successfully")
+
+        # Extract optimizable parameters for display only
         optimizable_params = walk_optimizables(config_obj)
 
         # Convert SearchSpace objects to dicts for JSON serialization
@@ -71,45 +82,21 @@ async def load_config_file(file: UploadFile):
             for key, value in optimizable_params.items()
         }
 
-        logger.info(f"Loaded config with {len(optimizable_params_dict)} optimizable parameters")
+        # Count param types
+        num_numeric = sum(1 for p in optimizable_params.values() if not p.is_prompt)
+        num_prompt = sum(1 for p in optimizable_params.values() if p.is_prompt)
 
-        # Serialize config with proper JSON handling
-        config_data = config_obj.model_dump(mode="json")
-        
-        # Test JSON serialization to catch any issues early
-        try:
-            json.dumps(config_data)
-            logger.info("Config successfully serialized to JSON")
-        except TypeError as te:
-            logger.error(f"Config contains non-JSON-serializable data: {te}")
-            raise HTTPException(status_code=500, detail=f"Config serialization error: {str(te)}")
-        
+        logger.info(f"Loaded config with {len(optimizable_params_dict)} optimizable parameters ({num_numeric} numeric, {num_prompt} prompt)")
+
         response_data = {
-            "config": config_data,
+            "config_path": str(upload_path.absolute()),
+            "config_filename": safe_filename,
             "optimizable_params": optimizable_params_dict,
-            "config_path": file.filename,
+            "num_numeric_params": num_numeric,
+            "num_prompt_params": num_prompt,
         }
 
-        # Test full response serialization
-        try:
-            json_str = json.dumps(response_data)
-            logger.info(f"Response successfully serialized to JSON ({len(json_str)} bytes)")
-        except TypeError as te:
-            logger.error(f"Response contains non-JSON-serializable data: {te}")
-            raise HTTPException(status_code=500, detail=f"Config serialization error: {str(te)}")
-
-        logger.info("About to return JSONResponse")
-        response = JSONResponse(
-            content=response_data,
-            headers={
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "POST, OPTIONS",
-                "Access-Control-Allow-Headers": "*",
-            }
-        )
-        logger.info(f"JSONResponse created successfully with headers")
-        return response
+        return JSONResponse(content=response_data)
     except HTTPException:
         raise
     except Exception as e:
@@ -121,15 +108,18 @@ async def load_config_file(file: UploadFile):
 async def load_config_from_path(path: str):
     """
     Load a configuration file from a file system path.
+    Returns the path (no serialization/deserialization).
     """
     try:
-        config_path = Path(path)
+        config_path = Path(path).expanduser().resolve()
         if not config_path.exists():
             raise HTTPException(status_code=404, detail=f"Config file not found: {path}")
 
+        # Validate the config by loading it
         config_obj: Config = load_config(config_file=config_path)
+        logger.info("Config loaded and validated successfully")
 
-        # Extract optimizable parameters
+        # Extract optimizable parameters for display only
         optimizable_params = walk_optimizables(config_obj)
 
         # Convert SearchSpace objects to dicts
@@ -147,33 +137,20 @@ async def load_config_from_path(path: str):
             for key, value in optimizable_params.items()
         }
 
-        logger.info(f"Loaded config from {path} with {len(optimizable_params_dict)} optimizable parameters")
+        # Count param types
+        num_numeric = sum(1 for p in optimizable_params.values() if not p.is_prompt)
+        num_prompt = sum(1 for p in optimizable_params.values() if p.is_prompt)
 
-        # Serialize config with proper JSON handling
-        config_data = config_obj.model_dump(mode="json")
-        
-        # Test JSON serialization to catch any issues early
-        try:
-            json.dumps(config_data)
-            logger.info("Config successfully serialized to JSON")
-        except TypeError as te:
-            logger.error(f"Config contains non-JSON-serializable data: {te}")
-            raise HTTPException(status_code=500, detail=f"Config serialization error: {str(te)}")
-        
+        logger.info(f"Loaded config from {path} with {len(optimizable_params_dict)} optimizable parameters ({num_numeric} numeric, {num_prompt} prompt)")
+
         response_data = {
-            "config": config_data,
+            "config_path": str(config_path.absolute()),
+            "config_filename": config_path.name,
             "optimizable_params": optimizable_params_dict,
-            "config_path": str(config_path),
+            "num_numeric_params": num_numeric,
+            "num_prompt_params": num_prompt,
         }
-        
-        # Test full response serialization
-        try:
-            json_str = json.dumps(response_data)
-            logger.info(f"Response successfully serialized to JSON ({len(json_str)} bytes)")
-        except TypeError as te:
-            logger.error(f"Response contains non-JSON-serializable data: {te}")
-            raise HTTPException(status_code=500, detail=f"Response serialization error: {str(te)}")
-        
+
         return JSONResponse(content=response_data)
     except HTTPException:
         raise
@@ -182,44 +159,30 @@ async def load_config_from_path(path: str):
         raise HTTPException(status_code=400, detail=f"Error loading config: {str(e)}")
 
 
-@router.post("/save")
-async def save_config(request: UpdateConfigRequest) -> dict[str, str]:
+@router.get("/view/{config_id}")
+async def view_config_raw(config_id: str):
     """
-    Save the updated configuration to a file.
-    """
-    try:
-        if not request.config_path:
-            raise HTTPException(status_code=400, detail="config_path is required")
-
-        config_path = Path(request.config_path)
-        config_path.parent.mkdir(parents=True, exist_ok=True)
-
-        with config_path.open("w") as f:
-            yaml.dump(request.config, f, default_flow_style=False, sort_keys=False)
-
-        return {"message": "Config saved successfully", "path": str(config_path)}
-    except Exception as e:
-        logger.error(f"Error saving config: {e}")
-        raise HTTPException(status_code=500, detail=f"Error saving config: {str(e)}")
-
-
-@router.post("/validate")
-async def validate_config(config: dict[str, Any]) -> dict[str, Any]:
-    """
-    Validate a configuration without saving it.
+    Get the raw YAML content of a config file for viewing (read-only).
     """
     try:
-        config_obj = Config.model_validate(config)
-        optimizable_params = walk_optimizables(config_obj)
+        # For uploaded files
+        config_path = UPLOAD_DIR / config_id
+
+        if not config_path.exists():
+            # Try as absolute path
+            config_path = Path(config_id)
+            if not config_path.exists():
+                raise HTTPException(status_code=404, detail=f"Config file not found: {config_id}")
+
+        with config_path.open("r") as f:
+            content = f.read()
 
         return {
-            "valid": True,
-            "message": "Configuration is valid",
-            "optimizable_param_count": len(optimizable_params),
+            "content": content,
+            "path": str(config_path),
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Config validation error: {e}")
-        return {
-            "valid": False,
-            "message": str(e),
-        }
+        logger.error(f"Error reading config: {e}")
+        raise HTTPException(status_code=500, detail=f"Error reading config: {str(e)}")
