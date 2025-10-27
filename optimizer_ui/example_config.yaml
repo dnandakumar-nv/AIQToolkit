@@ -1,0 +1,75 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Example configuration for NeMo Agent Toolkit Optimizer UI
+# This is a minimal example showing the required structure for optimization
+
+# Optimizer configuration
+optimizer:
+  output_path: "optimizer_results"
+
+  # Numeric parameter optimization using Optuna
+  numeric:
+    enabled: true
+    n_trials: 20
+
+  # Prompt optimization using Genetic Algorithm (optional)
+  prompt:
+    enabled: false
+    ga_population_size: 10
+    ga_generations: 5
+
+  # Evaluation metrics to optimize
+  eval_metrics:
+    latency:
+      evaluator_name: "latency"
+      direction: "minimize"
+      weight: 0.3
+    accuracy:
+      evaluator_name: "accuracy"
+      direction: "maximize"
+      weight: 0.7
+
+  # Number of times to run each parameter set for stability
+  reps_per_param_set: 3
+
+  # How to combine multiple objectives
+  multi_objective_combination_mode: "harmonic"
+
+# LLM configuration example
+llms:
+  my_llm:
+    _type: nim
+    model_name: meta/llama-3.1-70b-instruct
+    temperature: 0.0
+    top_p: 1.0
+    max_tokens: 300
+
+    # Enable these parameters for optimization
+    optimizable_params:
+      - temperature
+      - top_p
+      - max_tokens
+
+    # Override search spaces (optional)
+    search_space:
+      temperature:
+        low: 0.1
+        high: 0.8
+        step: 0.2
+      top_p:
+        low: 0.5
+        high: 1.0
+        step: 0.1
+      max_tokens:
+        low: 128
+        high: 1024
+        step: 128
+
+# Workflow configuration
+workflow:
+  name: "example_optimization_workflow"
+  description: "Example workflow for testing the optimizer UI"
+
+# Add your specific workflow configuration here
+# See NAT documentation for full configuration options

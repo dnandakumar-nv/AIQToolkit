@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeMo Agent Toolkit Optimizer UI</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Plotly for visualizations -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <!-- Monaco Editor for code editing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+
+    <!-- YAML parser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #76b900;
+            --primary-dark: #5a9000;
+            --secondary-color: #00a3e0;
+            --success-color: #4caf50;
+            --warning-color: #ff9800;
+            --error-color: #f44336;
+            --background: #0f0f0f;
+            --surface: #1a1a1a;
+            --surface-light: #2a2a2a;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --border-color: #333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--surface);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo {
+            padding: 24px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo h1 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo h1 .material-icons {
+            font-size: 24px;
+        }
+
+        .nav-menu {
+            flex: 1;
+            padding: 20px 0;
+        }
+
+        .nav-item {
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: var(--surface-light);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--surface-light);
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+        }
+
+        .nav-item .material-icons {
+            font-size: 20px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 20px 32px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h2 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--surface-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #333;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .file-upload {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-upload:hover {
+            border-color: var(--primary-color);
+            background: var(--surface-light);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        /* Progress */
+        .progress-container {
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--surface-light);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            margin-top: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-badge.running {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .status-badge.completed {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .status-badge.failed {
+            background: var(--error-color);
+            color: white;
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            gap: 24px;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        /* Stats Card */
+        .stat-card {
+            background: var(--surface-light);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Monaco Editor Container */
+        #editor-container {
+            height: 500px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table th {
+            background: var(--surface-light);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        .data-table tr:hover {
+            background: var(--surface-light);
+        }
+
+        /* Insights */
+        .insight-item {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 12px;
+            border-left: 3px solid;
+        }
+
+        .insight-item.success {
+            background: rgba(76, 175, 80, 0.1);
+            border-color: var(--success-color);
+        }
+
+        .insight-item.info {
+            background: rgba(0, 163, 224, 0.1);
+            border-color: var(--secondary-color);
+        }
+
+        .insight-icon {
+            font-size: 24px;
+        }
+
+        .insight-content h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .insight-content p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--surface-light);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Hidden class */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Visualization container */
+        .viz-container {
+            background: var(--surface-light);
+            padding: 20px;
+            border-radius: 8px;
+            min-height: 400px;
+        }
+
+        /* Parameter Editor */
+        .param-editor {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .param-item {
+            background: var(--surface-light);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .param-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .param-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .param-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--surface-light);
+            border: 1px solid var(--border-color);
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--text-secondary);
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+            background-color: #000;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 400px;
+            z-index: 1000;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 70px;
+            }
+
+            .nav-item span {
+                display: none;
+            }
+
+            .logo h1 span {
+                display: none;
+            }
+
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo">
+                <h1>
+                    <span class="material-icons">tune</span>
+                    <span>NAT Optimizer</span>
+                </h1>
+            </div>
+            <nav class="nav-menu">
+                <div class="nav-item active" data-page="configure">
+                    <span class="material-icons">settings</span>
+                    <span>Configure</span>
+                </div>
+                <div class="nav-item" data-page="optimize">
+                    <span class="material-icons">play_arrow</span>
+                    <span>Optimize</span>
+                </div>
+                <div class="nav-item" data-page="results">
+                    <span class="material-icons">analytics</span>
+                    <span>Results</span>
+                </div>
+                <div class="nav-item" data-page="insights">
+                    <span class="material-icons">lightbulb</span>
+                    <span>Insights</span>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Configure Page -->
+            <div id="page-configure" class="page active">
+                <div class="header">
+                    <h2>Configuration</h2>
+                    <div>
+                        <button class="btn btn-secondary" onclick="app.saveConfig()">
+                            <span class="material-icons">save</span>
+                            Save Config
+                        </button>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="material-icons">upload_file</span>
+                                Load Configuration
+                            </div>
+                        </div>
+                        <div class="file-upload" onclick="document.getElementById('config-file').click()">
+                            <input type="file" id="config-file" accept=".yaml,.yml,.json" onchange="app.handleFileUpload(event)">
+                            <span class="material-icons" style="font-size: 48px; color: var(--text-secondary);">cloud_upload</span>
+                            <p style="margin-top: 12px;">Drop your config file here or click to browse</p>
+                            <p style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">Supports YAML and JSON formats</p>
+                        </div>
+                        <div style="margin-top: 16px;">
+                            <label class="form-label">Or load from path:</label>
+                            <div style="display: flex; gap: 12px;">
+                                <input type="text" class="form-input" id="config-path" placeholder="/path/to/config.yaml">
+                                <button class="btn btn-primary" onclick="app.loadFromPath()">Load</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" id="config-editor-card" style="display: none;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="material-icons">code</span>
+                                Configuration Editor
+                            </div>
+                        </div>
+                        <div id="editor-container"></div>
+                    </div>
+
+                    <div class="card" id="params-card" style="display: none;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="material-icons">tune</span>
+                                Optimizable Parameters
+                            </div>
+                            <span id="param-count" class="status-badge" style="background: var(--surface-light);">0 parameters</span>
+                        </div>
+                        <div id="params-list" class="param-editor"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optimize Page -->
+            <div id="page-optimize" class="page hidden">
+                <div class="header">
+                    <h2>Run Optimization</h2>
+                    <div>
+                        <button class="btn btn-primary" id="start-btn" onclick="app.startOptimization()">
+                            <span class="material-icons">play_arrow</span>
+                            Start Optimization
+                        </button>
+                        <button class="btn btn-secondary hidden" id="stop-btn" onclick="app.stopOptimization()">
+                            <span class="material-icons">stop</span>
+                            Stop
+                        </button>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="grid grid-3">
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-trials">-</div>
+                            <div class="stat-label">Total Trials</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-current">-</div>
+                            <div class="stat-label">Current Trial</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-progress">0%</div>
+                            <div class="stat-label">Progress</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="material-icons">trending_up</span>
+                                Optimization Progress
+                            </div>
+                            <span id="status-badge" class="status-badge">Not Started</span>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                            </div>
+                            <div class="progress-text" id="progress-text">Ready to start</div>
+                        </div>
+                    </div>
+
+                    <div class="card" id="log-card" style="display: none;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="material-icons">terminal</span>
+                                Optimization Log
+                            </div>
+                        </div>
+                        <div id="log-container" style="background: var(--background); padding: 16px; border-radius: 8px; font-family: monospace; font-size: 13px; max-height: 300px; overflow-y: auto;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Page -->
+            <div id="page-results" class="page hidden">
+                <div class="header">
+                    <h2>Optimization Results</h2>
+                    <div>
+                        <button class="btn btn-secondary" onclick="app.downloadResults()">
+                            <span class="material-icons">download</span>
+                            Download
+                        </button>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="material-icons">assessment</span>
+                                Pareto Front Visualization
+                            </div>
+                        </div>
+                        <div id="pareto-viz" class="viz-container"></div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="material-icons">table_chart</span>
+                                Trials Data
+                            </div>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table class="data-table" id="trials-table">
+                                <thead>
+                                    <tr>
+                                        <th>Trial</th>
+                                        <th>Status</th>
+                                        <th>Values</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Insights Page -->
+            <div id="page-insights" class="page hidden">
+                <div class="header">
+                    <h2>Insights & Analytics</h2>
+                    <div>
+                        <button class="btn btn-secondary" onclick="app.refreshInsights()">
+                            <span class="material-icons">refresh</span>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="material-icons">lightbulb</span>
+                                AI-Powered Insights
+                            </div>
+                        </div>
+                        <div id="insights-container"></div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="material-icons">timeline</span>
+                                Parameter Correlations
+                            </div>
+                        </div>
+                        <div id="correlation-viz" class="viz-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

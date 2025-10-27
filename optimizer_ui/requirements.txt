@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Python dependencies for Optimizer UI Backend
+# Note: NAT dependencies are inherited from the main project
+
+fastapi>=0.115.5
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+websockets>=12.0
+pyyaml>=6.0
+pandas>=2.0.0
+matplotlib>=3.7.0
+plotly>=5.18.0
