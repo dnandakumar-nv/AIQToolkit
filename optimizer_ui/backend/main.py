@@ -43,24 +43,32 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configure CORS
+# Configure CORS - allow requests from the same origin and dev servers
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # React dev servers
+    allow_origins=[
+        "http://localhost:8080",  # Same origin (production)
+        "http://localhost:3000",  # React dev server
+        "http://localhost:5173",  # Vite dev server
+        "http://127.0.0.1:8080",  # Same origin (alternative)
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include routers
+# Include routers BEFORE static files to ensure API routes take precedence
 app.include_router(config_routes.router, prefix="/api/config", tags=["config"])
 app.include_router(optimization_routes.router, prefix="/api/optimization", tags=["optimization"])
 app.include_router(results_routes.router, prefix="/api/results", tags=["results"])
 
-# Serve static files (frontend)
+# Serve static files (frontend) - mounted LAST so API routes take precedence
 frontend_path = Path(__file__).parent.parent / "frontend"
 if frontend_path.exists():
+    logger.info(f"Serving frontend from {frontend_path}")
     app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="static")
+else:
+    logger.warning(f"Frontend path not found: {frontend_path}")
 
 
 @app.get("/api/health")
