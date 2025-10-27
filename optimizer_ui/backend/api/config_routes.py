@@ -68,19 +68,37 @@ async def load_config_file(file: UploadFile):
         optimizable_params = walk_optimizables(config_obj)
 
         # Convert SearchSpace objects to dicts for JSON serialization
-        optimizable_params_dict = {
-            key: {
-                "values": list(value.values) if value.values is not None else None,
-                "low": value.low,
-                "high": value.high,
-                "log": value.log,
-                "step": value.step,
-                "is_prompt": value.is_prompt,
-                "prompt": value.prompt,
-                "prompt_purpose": value.prompt_purpose,
-            }
-            for key, value in optimizable_params.items()
-        }
+        # Ensure all values are JSON-serializable
+        def safe_convert(val):
+            """Convert value to JSON-serializable type."""
+            if val is None:
+                return None
+            if isinstance(val, (str, bool)):
+                return val
+            if isinstance(val, (int, float)):
+                return float(val) if isinstance(val, float) else int(val)
+            if isinstance(val, Path):
+                return str(val)
+            return str(val)  # Fallback: convert to string
+
+        optimizable_params_dict = {}
+        for key, value in optimizable_params.items():
+            try:
+                param_dict = {
+                    "values": [safe_convert(v) for v in value.values] if value.values is not None else None,
+                    "low": safe_convert(value.low),
+                    "high": safe_convert(value.high),
+                    "log": bool(value.log) if value.log is not None else False,
+                    "step": safe_convert(value.step),
+                    "is_prompt": bool(value.is_prompt),
+                    "prompt": str(value.prompt) if value.prompt is not None else None,
+                    "prompt_purpose": str(value.prompt_purpose) if value.prompt_purpose is not None else None,
+                }
+                optimizable_params_dict[key] = param_dict
+            except Exception as e:
+                logger.error(f"Error converting parameter {key}: {e}")
+                # Skip this parameter if conversion fails
+                continue
 
         # Count param types
         num_numeric = sum(1 for p in optimizable_params.values() if not p.is_prompt)
@@ -95,6 +113,15 @@ async def load_config_file(file: UploadFile):
             "num_numeric_params": num_numeric,
             "num_prompt_params": num_prompt,
         }
+
+        # Test JSON serialization
+        try:
+            import json
+            json_str = json.dumps(response_data)
+            logger.info(f"Response serialized successfully ({len(json_str)} bytes)")
+        except Exception as e:
+            logger.error(f"Failed to serialize response: {e}")
+            raise HTTPException(status_code=500, detail=f"Response serialization error: {str(e)}")
 
         return JSONResponse(content=response_data)
     except HTTPException:
@@ -123,19 +150,37 @@ async def load_config_from_path(path: str):
         optimizable_params = walk_optimizables(config_obj)
 
         # Convert SearchSpace objects to dicts
-        optimizable_params_dict = {
-            key: {
-                "values": list(value.values) if value.values is not None else None,
-                "low": value.low,
-                "high": value.high,
-                "log": value.log,
-                "step": value.step,
-                "is_prompt": value.is_prompt,
-                "prompt": value.prompt,
-                "prompt_purpose": value.prompt_purpose,
-            }
-            for key, value in optimizable_params.items()
-        }
+        # Ensure all values are JSON-serializable
+        def safe_convert(val):
+            """Convert value to JSON-serializable type."""
+            if val is None:
+                return None
+            if isinstance(val, (str, bool)):
+                return val
+            if isinstance(val, (int, float)):
+                return float(val) if isinstance(val, float) else int(val)
+            if isinstance(val, Path):
+                return str(val)
+            return str(val)  # Fallback: convert to string
+
+        optimizable_params_dict = {}
+        for key, value in optimizable_params.items():
+            try:
+                param_dict = {
+                    "values": [safe_convert(v) for v in value.values] if value.values is not None else None,
+                    "low": safe_convert(value.low),
+                    "high": safe_convert(value.high),
+                    "log": bool(value.log) if value.log is not None else False,
+                    "step": safe_convert(value.step),
+                    "is_prompt": bool(value.is_prompt),
+                    "prompt": str(value.prompt) if value.prompt is not None else None,
+                    "prompt_purpose": str(value.prompt_purpose) if value.prompt_purpose is not None else None,
+                }
+                optimizable_params_dict[key] = param_dict
+            except Exception as e:
+                logger.error(f"Error converting parameter {key}: {e}")
+                # Skip this parameter if conversion fails
+                continue
 
         # Count param types
         num_numeric = sum(1 for p in optimizable_params.values() if not p.is_prompt)
@@ -150,6 +195,15 @@ async def load_config_from_path(path: str):
             "num_numeric_params": num_numeric,
             "num_prompt_params": num_prompt,
         }
+
+        # Test JSON serialization
+        try:
+            import json
+            json_str = json.dumps(response_data)
+            logger.info(f"Response serialized successfully ({len(json_str)} bytes)")
+        except Exception as e:
+            logger.error(f"Failed to serialize response: {e}")
+            raise HTTPException(status_code=500, detail=f"Response serialization error: {str(e)}")
 
         return JSONResponse(content=response_data)
     except HTTPException:
