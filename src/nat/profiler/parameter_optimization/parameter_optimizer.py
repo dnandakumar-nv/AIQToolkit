@@ -180,10 +180,21 @@ def optimize_parameters(
 
     # Save final results (out_dir already created and defined above)
     with (out_dir / "optimized_config.yml").open("w") as fh:
-        yaml.dump(tuned_cfg.model_dump(), fh)
+        yaml.dump(tuned_cfg.model_dump(mode='json'), fh)
     with (out_dir / "trials_dataframe_params.csv").open("w") as fh:
         # Export full trials DataFrame (values, params, timings, etc.).
         df = study.trials_dataframe()
+
+        # Rename values_X columns to actual metric names
+        metric_names = list(metric_cfg.keys())
+        rename_mapping = {}
+        for i, metric_name in enumerate(metric_names):
+            old_col = f"values_{i}"
+            if old_col in df.columns:
+                rename_mapping[old_col] = f"values_{metric_name}"
+        if rename_mapping:
+            df = df.rename(columns=rename_mapping)
+
         # Normalise rep_scores column naming for convenience.
         if "user_attrs_rep_scores" in df.columns and "rep_scores" not in df.columns:
             df = df.rename(columns={"user_attrs_rep_scores": "rep_scores"})
