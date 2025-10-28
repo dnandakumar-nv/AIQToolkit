@@ -557,6 +557,98 @@
             }
         }
 
+        /* Prompt Comparison Styles */
+        .prompt-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .prompt-comparison.diff-mode {
+            grid-template-columns: 1fr;
+        }
+
+        .prompt-box {
+            background: var(--background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .prompt-box h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .prompt-box h3.before {
+            color: var(--secondary-color);
+        }
+
+        .prompt-box h3.after {
+            color: var(--primary-color);
+        }
+
+        .prompt-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .prompt-content {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            padding: 16px;
+            background: var(--surface);
+            border-radius: 6px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .diff-line {
+            display: block;
+            padding: 2px 8px;
+            margin: 0 -8px;
+        }
+
+        .diff-added {
+            background: rgba(76, 175, 80, 0.2);
+            color: #a5d6a7;
+        }
+
+        .diff-removed {
+            background: rgba(244, 67, 54, 0.2);
+            color: #ef9a9a;
+            text-decoration: line-through;
+        }
+
+        .diff-unchanged {
+            color: var(--text-secondary);
+        }
+
+        .prompt-separator {
+            text-align: center;
+            padding: 20px 0;
+            color: var(--text-secondary);
+            font-size: 24px;
+        }
+
+        .no-prompts-message {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 40px;
+            font-size: 14px;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
@@ -572,6 +664,10 @@
             }
 
             .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .prompt-comparison {
                 grid-template-columns: 1fr;
             }
         }
@@ -599,6 +695,10 @@
                 <div class="nav-item" data-page="results">
                     <span class="material-icons">analytics</span>
                     <span>Results</span>
+                </div>
+                <div class="nav-item" data-page="prompts">
+                    <span class="material-icons">description</span>
+                    <span>Prompts</span>
                 </div>
                 <div class="nav-item" data-page="insights">
                     <span class="material-icons">lightbulb</span>
@@ -731,17 +831,6 @@
                     </div>
                 </div>
                 <div class="content">
-                    <!-- Spider/Radar Plot -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <span class="material-icons">radar</span>
-                                Multi-Metric Spider Plot
-                            </div>
-                        </div>
-                        <div id="spider-viz" class="viz-container"></div>
-                    </div>
-
                     <!-- 2D Pareto Front -->
                     <div class="card">
                         <div class="card-header">
@@ -814,6 +903,34 @@
                                 </thead>
                                 <tbody></tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prompts Page -->
+            <div id="page-prompts" class="page hidden">
+                <div class="header">
+                    <h2>Prompt Comparisons</h2>
+                    <div>
+                        <button class="btn btn-secondary" id="toggle-diff-btn">
+                            <span class="material-icons">compare</span>
+                            Toggle Diff View
+                        </button>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="material-icons">description</span>
+                                Before & After Optimization
+                            </div>
+                        </div>
+                        <div id="prompts-container">
+                            <p style="text-align: center; color: var(--text-secondary); padding: 40px;">
+                                Run an optimization to see prompt comparisons
+                            </p>
                         </div>
                     </div>
                 </div>

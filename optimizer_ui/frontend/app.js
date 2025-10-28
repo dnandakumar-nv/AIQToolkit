@@ -15,6 +15,7 @@ class OptimizerApp {
         this.editor = null;  // For read-only viewing
         this.currentRunId = null;
         this.ws = null;
+        this.diffMode = false;  // Toggle for diff view
 
         this.init();
     }
@@ -490,10 +491,12 @@ class OptimizerApp {
             this.renderTrialsTable(trialsData);
             this.renderColorCodedTable(trialsData);
             this.renderParetoVisualization(trialsData);
-            this.renderSpiderPlot(trialsData);
             this.renderHistograms(trialsData);
             this.renderConvergencePlot(trialsData);
             this.renderCorrelationHeatmap(trialsData);
+
+            // Load prompts for comparison
+            this.loadPromptComparisons(runId);
 
         } catch (error) {
             console.error('Error loading results:', error);
@@ -588,103 +591,162 @@ class OptimizerApp {
         }
     }
 
-    renderSpiderPlot(data) {
+    async loadPromptComparisons(runId) {
         try {
-            console.log('Rendering spider plot...');
-        if (!data.trials || data.trials.length === 0) return;
+            console.log('Loading prompt comparisons...');
 
-        const valueColumns = data.metric_columns || [];
-        if (valueColumns.length < 3) {
-            document.getElementById('spider-viz').innerHTML =
-                '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">Need at least 3 metrics for spider/radar plot</p>';
+            // Get the best trial info
+            const trialsResponse = await fetch(`${API_BASE}/results/${runId}/trials`);
+            if (!trialsResponse.ok) throw new Error('Failed to load trials for prompts');
+
+            const trialsData = await trialsResponse.json();
+
+            // Extract prompt parameters from trials
+            const paramColumns = trialsData.param_columns || [];
+            const promptParams = paramColumns.filter(col => col.includes('prompt'));
+
+            if (promptParams.length === 0) {
+                document.getElementById('prompts-container').innerHTML =
+                    '<p class="no-prompts-message">No prompt parameters found in optimization results</p>';
+                return;
+            }
+
+            // Get best trial (last trial typically has best results in optimization)
+            const trials = trialsData.trials || [];
+            const bestTrial = trials[trials.length - 1];
+
+            // Create prompt comparisons from optimizable params and best trial
+            const promptComparisons = [];
+
+            promptParams.forEach(paramCol => {
+                const paramName = paramCol.replace('params_', '');
+                const originalParam = this.optimizableParams?.[paramName];
+                const optimizedValue = bestTrial[paramCol];
+
+                if (originalParam && originalParam.prompt) {
+                    promptComparisons.push({
+                        name: paramName,
+                        purpose: originalParam.prompt_purpose || 'N/A',
+                        before: originalParam.prompt,
+                        after: optimizedValue || originalParam.prompt,
+                    });
+                }
+            });
+
+            this.renderPromptComparisons(promptComparisons);
+            console.log('Prompt comparisons loaded successfully');
+
+        } catch (error) {
+            console.error('Error loading prompt comparisons:', error);
+            document.getElementById('prompts-container').innerHTML =
+                '<p class="no-prompts-message">Error loading prompt comparisons. See console for details.</p>';
+        }
+    }
+
+    renderPromptComparisons(comparisons) {
+        const container = document.getElementById('prompts-container');
+
+        if (!comparisons || comparisons.length === 0) {
+            container.innerHTML = '<p class="no-prompts-message">No prompt comparisons available</p>';
             return;
         }
 
-        // Normalize metrics to 0-1 scale for spider plot
-        const metricRanges = {};
-        valueColumns.forEach(col => {
-            const values = data.trials.map(t => t[col]).filter(v => v != null);
-            metricRanges[col] = {
-                min: Math.min(...values),
-                max: Math.max(...values),
-            };
+        container.innerHTML = '';
+
+        comparisons.forEach((comp, idx) => {
+            const comparisonDiv = document.createElement('div');
+            comparisonDiv.className = this.diffMode ? 'prompt-comparison diff-mode' : 'prompt-comparison';
+            comparisonDiv.id = `comparison-${idx}`;
+
+            if (this.diffMode) {
+                // Diff mode - show unified diff
+                const diffHtml = this.generateDiffHtml(comp.before, comp.after);
+                comparisonDiv.innerHTML = `
+                    <div class="prompt-box">
+                        <h3 class="before">
+                            <span class="material-icons">description</span>
+                            ${comp.name}
+                        </h3>
+                        <div class="prompt-meta">
+                            <strong>Purpose:</strong> ${comp.purpose}
+                        </div>
+                        <div class="prompt-content">${diffHtml}</div>
+                    </div>
+                `;
+            } else {
+                // Side-by-side mode
+                comparisonDiv.innerHTML = `
+                    <div class="prompt-box">
+                        <h3 class="before">
+                            <span class="material-icons">description</span>
+                            Before Optimization
+                        </h3>
+                        <div class="prompt-meta">
+                            <strong>Parameter:</strong> ${comp.name}<br>
+                            <strong>Purpose:</strong> ${comp.purpose}
+                        </div>
+                        <div class="prompt-content">${this.escapeHtml(comp.before)}</div>
+                    </div>
+                    <div class="prompt-box">
+                        <h3 class="after">
+                            <span class="material-icons">auto_awesome</span>
+                            After Optimization
+                        </h3>
+                        <div class="prompt-meta">
+                            <strong>Parameter:</strong> ${comp.name}<br>
+                            <strong>Purpose:</strong> ${comp.purpose}
+                        </div>
+                        <div class="prompt-content">${this.escapeHtml(comp.after)}</div>
+                    </div>
+                `;
+            }
+
+            container.appendChild(comparisonDiv);
         });
+    }
 
-        const normalize = (value, col) => {
-            const range = metricRanges[col];
-            if (!range || range.max === range.min) return 0.5;
-            return (value - range.min) / (range.max - range.min);
-        };
+    generateDiffHtml(before, after) {
+        // Simple line-by-line diff
+        const beforeLines = before.split('\n');
+        const afterLines = after.split('\n');
 
-        // Show best, worst, and median trials
-        const trials = data.trials;
+        const maxLines = Math.max(beforeLines.length, afterLines.length);
+        let diffHtml = '';
 
-        // Calculate overall score (average normalized metrics)
-        const trialsWithScores = trials.map(trial => {
-            const scores = valueColumns.map(col => normalize(trial[col] || 0, col));
-            const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-            return { trial, avgScore };
-        });
+        for (let i = 0; i < maxLines; i++) {
+            const beforeLine = beforeLines[i];
+            const afterLine = afterLines[i];
 
-        trialsWithScores.sort((a, b) => b.avgScore - a.avgScore);
+            if (beforeLine === afterLine) {
+                // Unchanged
+                diffHtml += `<span class="diff-line diff-unchanged">${this.escapeHtml(beforeLine || '')}</span>\n`;
+            } else {
+                // Changed
+                if (beforeLine !== undefined) {
+                    diffHtml += `<span class="diff-line diff-removed">- ${this.escapeHtml(beforeLine)}</span>\n`;
+                }
+                if (afterLine !== undefined) {
+                    diffHtml += `<span class="diff-line diff-added">+ ${this.escapeHtml(afterLine)}</span>\n`;
+                }
+            }
+        }
 
-        const bestTrial = trialsWithScores[0].trial;
-        const worstTrial = trialsWithScores[trialsWithScores.length - 1].trial;
-        const medianTrial = trialsWithScores[Math.floor(trialsWithScores.length / 2)].trial;
+        return diffHtml;
+    }
 
-        const traces = [
-            {
-                type: 'scatterpolar',
-                r: valueColumns.map(col => normalize(bestTrial[col] || 0, col)),
-                theta: valueColumns,
-                fill: 'toself',
-                name: `Best Trial #${bestTrial.number}`,
-                line: { color: '#76b900' },
-            },
-            {
-                type: 'scatterpolar',
-                r: valueColumns.map(col => normalize(medianTrial[col] || 0, col)),
-                theta: valueColumns,
-                fill: 'toself',
-                name: `Median Trial #${medianTrial.number}`,
-                line: { color: '#00a3e0' },
-            },
-            {
-                type: 'scatterpolar',
-                r: valueColumns.map(col => normalize(worstTrial[col] || 0, col)),
-                theta: valueColumns,
-                fill: 'toself',
-                name: `Worst Trial #${worstTrial.number}`,
-                line: { color: '#f44336' },
-            },
-        ];
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 
-        const layout = {
-            polar: {
-                radialaxis: {
-                    visible: true,
-                    range: [0, 1],
-                    color: '#fff',
-                },
-                angularaxis: {
-                    color: '#fff',
-                },
-            },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent',
-            font: { color: '#fff' },
-            title: 'Multi-Metric Comparison (Normalized)',
-            showlegend: true,
-            legend: {
-                x: 0,
-                y: 1,
-            },
-        };
+    toggleDiffMode() {
+        this.diffMode = !this.diffMode;
 
-        Plotly.newPlot('spider-viz', traces, layout, { responsive: true });
-        console.log('Spider plot rendered successfully');
-        } catch (error) {
-            console.error('Error rendering spider plot:', error);
+        // Re-render prompt comparisons if they exist
+        const container = document.getElementById('prompts-container');
+        if (container && container.children.length > 0 && this.currentRunId) {
+            this.loadPromptComparisons(this.currentRunId);
         }
     }
 
@@ -1101,5 +1163,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadResultsBtn = document.getElementById('download-results-btn');
     if (downloadResultsBtn) {
         downloadResultsBtn.addEventListener('click', () => app.downloadConfig());
+    }
+
+    const toggleDiffBtn = document.getElementById('toggle-diff-btn');
+    if (toggleDiffBtn) {
+        toggleDiffBtn.addEventListener('click', () => app.toggleDiffMode());
     }
 });
