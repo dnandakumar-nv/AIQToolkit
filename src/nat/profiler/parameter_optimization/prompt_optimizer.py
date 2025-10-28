@@ -21,6 +21,46 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
+# Pre-emptively patch nest_asyncio to handle uvloop before any library imports it
+# This must be done at module level to ensure it happens before ragas imports
+_nest_asyncio_patched = False
+
+
+def _patch_nest_asyncio():
+    """Patch nest_asyncio to handle uvloop gracefully."""
+    global _nest_asyncio_patched
+    if _nest_asyncio_patched:
+        return
+
+    try:
+        import nest_asyncio
+        original_apply = nest_asyncio.apply
+
+        def safe_apply(loop=None):
+            """Safe version of nest_asyncio.apply that doesn't fail on uvloop."""
+            try:
+                return original_apply(loop)
+            except ValueError as e:
+                if "uvloop" in str(e):
+                    # Silently ignore uvloop patching attempts
+                    import logging
+                    logging.getLogger(__name__).debug(
+                        "Ignoring nest_asyncio.apply() on uvloop"
+                    )
+                else:
+                    raise
+
+        # Replace the apply function globally
+        nest_asyncio.apply = safe_apply
+        _nest_asyncio_patched = True
+    except ImportError:
+        # nest_asyncio not installed, that's fine
+        pass
+
+
+# Apply the patch immediately
+_patch_nest_asyncio()
+
 from pydantic import BaseModel
 
 from nat.builder.workflow_builder import WorkflowBuilder

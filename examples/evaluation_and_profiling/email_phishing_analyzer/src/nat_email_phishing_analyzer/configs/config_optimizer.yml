@@ -104,10 +104,10 @@ optimizer:
 
   numeric:
     enabled: true
-    n_trials: 2
+    n_trials: 4
 
   prompt:
-    enabled: false
+    enabled: true
     prompt_population_init_function: prompt_init
     prompt_recombination_function: prompt_recombination
     ga_generations: 3
