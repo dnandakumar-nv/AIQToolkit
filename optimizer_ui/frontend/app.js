@@ -645,6 +645,13 @@ class OptimizerApp {
 
             const promptsData = await promptsResponse.json();
             console.log('Prompts data received:', promptsData);
+            
+            // Debug each comparison
+            if (promptsData.comparisons) {
+                promptsData.comparisons.forEach((comp, idx) => {
+                    console.log(`Raw comparison ${idx}:`, comp);
+                });
+            }
 
             if (!promptsData.comparisons || promptsData.comparisons.length === 0) {
                 document.getElementById('prompts-container').innerHTML =
@@ -655,6 +662,37 @@ class OptimizerApp {
 
             this.renderPromptComparisons(promptsData.comparisons);
             console.log('Prompt comparisons loaded successfully:', promptsData.comparisons.length, 'prompts');
+            
+            // Render GA history visualizations if available
+            console.log('Checking for GA history...', promptsData.ga_history ? 'Found!' : 'Not found');
+            if (promptsData.ga_history) {
+                console.log('GA history data:', promptsData.ga_history);
+                try {
+                    this.renderGAHistory(promptsData.ga_history);
+                    
+                    // Make sure to show the card after rendering
+                    setTimeout(() => {
+                        const gaCard = document.getElementById('ga-history-card');
+                        console.log('Looking for GA card element...');
+                        if (gaCard) {
+                            console.log('GA card found, current display:', gaCard.style.display);
+                            gaCard.style.display = 'block';
+                            gaCard.style.visibility = 'visible';
+                            gaCard.style.opacity = '1';
+                            console.log('GA history card displayed, new display:', gaCard.style.display);
+                            
+                            // Force a reflow
+                            gaCard.offsetHeight;
+                        } else {
+                            console.error('GA history card element not found!');
+                        }
+                    }, 100);
+                } catch (error) {
+                    console.error('Error rendering GA history:', error);
+                }
+            } else {
+                console.log('No GA history data in response');
+            }
 
         } catch (error) {
             console.error('Error loading prompt comparisons:', error);
@@ -672,11 +710,26 @@ class OptimizerApp {
         }
 
         container.innerHTML = '';
+        
+        // Debug logging
+        console.log('Rendering prompt comparisons:', comparisons);
 
         comparisons.forEach((comp, idx) => {
+            console.log(`Comparison ${idx}:`, {
+                name: comp.name,
+                before: comp.before?.substring(0, 50) + '...',
+                after: comp.after?.substring(0, 50) + '...',
+                changed: comp.changed,
+                same: comp.before === comp.after
+            });
             const comparisonDiv = document.createElement('div');
             comparisonDiv.className = this.diffMode ? 'prompt-comparison diff-mode' : 'prompt-comparison';
             comparisonDiv.id = `comparison-${idx}`;
+            
+            // Add a class if the prompt didn't change
+            if (!comp.changed) {
+                comparisonDiv.classList.add('no-change');
+            }
 
             if (this.diffMode) {
                 // Diff mode - show unified diff
@@ -704,6 +757,7 @@ class OptimizerApp {
                         <div class="prompt-meta">
                             <strong>Parameter:</strong> ${comp.name}<br>
                             <strong>Purpose:</strong> ${comp.purpose}
+                            ${!comp.changed ? '<br><em style="color: #ff9800;">⚠️ No changes made during optimization</em>' : ''}
                         </div>
                         <div class="prompt-content">${this.escapeHtml(comp.before)}</div>
                     </div>
@@ -715,6 +769,7 @@ class OptimizerApp {
                         <div class="prompt-meta">
                             <strong>Parameter:</strong> ${comp.name}<br>
                             <strong>Purpose:</strong> ${comp.purpose}
+                            ${!comp.changed ? '<br><em style="color: #ff9800;">⚠️ No changes made during optimization</em>' : ''}
                         </div>
                         <div class="prompt-content">${this.escapeHtml(comp.after)}</div>
                     </div>
@@ -1147,6 +1202,318 @@ class OptimizerApp {
         setTimeout(() => {
             notification.remove();
         }, duration);
+    }
+
+    renderGAHistory(gaHistory) {
+        console.log('renderGAHistory called with:', gaHistory);
+        
+        if (!gaHistory || !gaHistory.raw_data) {
+            console.warn('No GA history data to render');
+            return;
+        }
+
+        console.log('GA history raw_data length:', gaHistory.raw_data.length);
+        console.log('GA history summary:', gaHistory.summary);
+        console.log('GA history metrics:', gaHistory.metrics);
+
+        // 0. Update Summary Statistics
+        this.updateGASummaryStats(gaHistory);
+        
+        // 1. Fitness Evolution Chart
+        console.log('Rendering fitness evolution...');
+        this.renderFitnessEvolution(gaHistory);
+        
+        // 2. Metrics Evolution Chart
+        console.log('Rendering metrics evolution...');
+        this.renderMetricsEvolution(gaHistory);
+        
+        // 3. Metrics Heatmap
+        console.log('Rendering metrics heatmap...');
+        this.renderMetricsHeatmap(gaHistory);
+        
+        // 4. Population Scatter Plot
+        console.log('Rendering population scatter...');
+        this.renderPopulationScatter(gaHistory);
+        
+        // Hide test message
+        const testMsg = document.getElementById('ga-test-message');
+        if (testMsg) {
+            testMsg.style.display = 'none';
+        }
+        
+        console.log('All GA visualizations rendered');
+    }
+
+    updateGASummaryStats(gaHistory) {
+        // Show summary stats
+        document.getElementById('ga-summary-stats').style.display = 'block';
+        
+        // Total generations
+        document.getElementById('ga-total-generations').textContent = gaHistory.summary.total_generations;
+        
+        // Population size
+        document.getElementById('ga-population-size').textContent = gaHistory.summary.population_size;
+        
+        // Calculate fitness improvement (higher is better)
+        // Compare first generation best to the highest fitness across ALL generations
+        const fitnessData = gaHistory.metrics_by_generation['scalar_fitness'];
+        const firstGenBest = fitnessData[0].best;
+        const overallBest = Math.max(...fitnessData.map(g => g.best));
+        const improvement = ((overallBest - firstGenBest) / firstGenBest * 100).toFixed(1);
+        
+        const improvementElement = document.getElementById('ga-fitness-improvement');
+        if (improvement > 0) {
+            improvementElement.textContent = `↑ ${improvement}%`;
+            improvementElement.style.color = 'var(--success-color)';
+        } else if (improvement < 0) {
+            improvementElement.textContent = `↓ ${Math.abs(improvement)}%`;
+            improvementElement.style.color = 'var(--error-color)';
+        } else {
+            improvementElement.textContent = 'No change';
+            improvementElement.style.color = 'var(--text-secondary)';
+        }
+    }
+
+    renderFitnessEvolution(gaHistory) {
+        const container = document.getElementById('fitness-evolution-chart');
+        console.log('Fitness evolution container:', container);
+        
+        if (!container) {
+            console.error('Fitness evolution container not found!');
+            return;
+        }
+        
+        // Extract best fitness per generation
+        const generations = gaHistory.metrics_by_generation['scalar_fitness'];
+        console.log('Fitness generations data:', generations);
+        
+        const trace1 = {
+            x: generations.map(g => g.generation),
+            y: generations.map(g => g.best),
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'Best Fitness',
+            line: { color: '#76b900', width: 3 },
+            marker: { size: 8 }
+        };
+        
+        const trace2 = {
+            x: generations.map(g => g.generation),
+            y: generations.map(g => g.mean),
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'Mean Fitness',
+            line: { color: '#00a3e0', width: 2 },
+            marker: { size: 6 }
+        };
+        
+        // Add error bars for standard deviation
+        trace2.error_y = {
+            type: 'data',
+            array: generations.map(g => g.std),
+            visible: true,
+            color: '#00a3e0',
+            opacity: 0.3
+        };
+        
+        const layout = {
+            title: 'Fitness Evolution Across Generations',
+            xaxis: { 
+                title: 'Generation',
+                tickmode: 'linear',
+                tick0: 1,
+                dtick: 1
+            },
+            yaxis: { 
+                title: 'Scalar Fitness (higher is better)',
+                rangemode: 'tozero'
+            },
+            paper_bgcolor: '#1a1a1a',
+            plot_bgcolor: '#0f0f0f',
+            font: { color: '#ffffff' },
+            showlegend: true,
+            legend: {
+                x: 0.7,
+                y: 1
+            }
+        };
+        
+        console.log('Calling Plotly.newPlot for fitness evolution...');
+        if (typeof Plotly === 'undefined') {
+            console.error('Plotly is not loaded!');
+            return;
+        }
+        
+        Plotly.newPlot(container, [trace1, trace2], layout, {responsive: true});
+        console.log('Fitness evolution chart rendered');
+    }
+
+    renderMetricsEvolution(gaHistory) {
+        const container = document.getElementById('metrics-evolution-chart');
+        
+        const traces = [];
+        const colors = ['#76b900', '#00a3e0', '#ff9800', '#f44336', '#9c27b0'];
+        
+        gaHistory.metrics.forEach((metric, idx) => {
+            const metricData = gaHistory.metrics_by_generation[metric];
+            const metricName = metric.replace('metric::', '').replace('_', ' ');
+            
+            traces.push({
+                x: metricData.map(g => g.generation),
+                y: metricData.map(g => g.mean),
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: metricName,
+                line: { color: colors[idx % colors.length], width: 2 },
+                marker: { size: 6 }
+            });
+        });
+        
+        const layout = {
+            title: 'Metrics Evolution Across Generations',
+            xaxis: { 
+                title: 'Generation',
+                tickmode: 'linear',
+                tick0: 1,
+                dtick: 1
+            },
+            yaxis: { title: 'Metric Value' },
+            paper_bgcolor: '#1a1a1a',
+            plot_bgcolor: '#0f0f0f',
+            font: { color: '#ffffff' },
+            showlegend: true,
+            legend: {
+                x: 0.02,
+                y: 0.98
+            }
+        };
+        
+        Plotly.newPlot(container, traces, layout, {responsive: true});
+    }
+
+    renderMetricsHeatmap(gaHistory) {
+        const container = document.getElementById('metrics-heatmap');
+        
+        // Create correlation matrix
+        const rawData = gaHistory.raw_data;
+        const metrics = ['scalar_fitness', ...gaHistory.metrics];
+        const correlations = [];
+        const labels = metrics.map(m => m.replace('metric::', '').replace('_', ' '));
+        
+        // Calculate correlations
+        for (let i = 0; i < metrics.length; i++) {
+            const row = [];
+            for (let j = 0; j < metrics.length; j++) {
+                if (i === j) {
+                    row.push(1.0);
+                } else {
+                    // Calculate Pearson correlation
+                    const x = rawData.map(d => d[metrics[i]]);
+                    const y = rawData.map(d => d[metrics[j]]);
+                    const correlation = this.pearsonCorrelation(x, y);
+                    row.push(correlation);
+                }
+            }
+            correlations.push(row);
+        }
+        
+        const data = [{
+            z: correlations,
+            x: labels,
+            y: labels,
+            type: 'heatmap',
+            colorscale: 'RdBu',
+            reversescale: true,
+            showscale: true,
+            zmin: -1,
+            zmax: 1
+        }];
+        
+        const layout = {
+            title: 'Metrics Correlation Heatmap',
+            xaxis: { side: 'bottom' },
+            yaxis: { autorange: 'reversed' },
+            paper_bgcolor: '#1a1a1a',
+            plot_bgcolor: '#0f0f0f',
+            font: { color: '#ffffff' },
+            annotations: []
+        };
+        
+        // Add text annotations
+        for (let i = 0; i < labels.length; i++) {
+            for (let j = 0; j < labels.length; j++) {
+                layout.annotations.push({
+                    x: labels[j],
+                    y: labels[i],
+                    text: correlations[i][j].toFixed(2),
+                    font: {
+                        size: 12,
+                        color: Math.abs(correlations[i][j]) > 0.5 ? 'white' : 'gray'
+                    },
+                    showarrow: false
+                });
+            }
+        }
+        
+        Plotly.newPlot(container, data, layout, {responsive: true});
+    }
+
+    renderPopulationScatter(gaHistory) {
+        const container = document.getElementById('population-scatter');
+        
+        // Create scatter plot of all individuals colored by generation
+        const traces = [];
+        const colors = ['#76b900', '#00a3e0', '#ff9800', '#f44336', '#9c27b0'];
+        
+        gaHistory.generations.forEach((gen, idx) => {
+            const genData = gaHistory.raw_data.filter(d => d.generation === gen);
+            
+            traces.push({
+                x: genData.map(d => d['metric::accuracy'] || 0),
+                y: genData.map(d => d['metric::llm_latency'] || 0),
+                mode: 'markers',
+                type: 'scatter',
+                name: `Generation ${gen}`,
+                marker: {
+                    size: genData.map(d => 15 - d.scalar_fitness * 5), // Size inversely proportional to fitness
+                    color: colors[idx % colors.length],
+                    line: {
+                        color: 'white',
+                        width: 1
+                    }
+                },
+                text: genData.map(d => 
+                    `Gen: ${d.generation}<br>` +
+                    `Index: ${d.index}<br>` +
+                    `Fitness: ${d.scalar_fitness.toFixed(4)}<br>` +
+                    `Accuracy: ${(d['metric::accuracy'] || 0).toFixed(3)}<br>` +
+                    `Latency: ${(d['metric::llm_latency'] || 0).toFixed(3)}`
+                ),
+                hoverinfo: 'text'
+            });
+        });
+        
+        const layout = {
+            title: 'Population Distribution: Accuracy vs Latency',
+            xaxis: { 
+                title: 'Accuracy',
+                range: [0, 1]
+            },
+            yaxis: { 
+                title: 'Latency (seconds)',
+                rangemode: 'tozero'
+            },
+            paper_bgcolor: '#1a1a1a',
+            plot_bgcolor: '#0f0f0f',
+            font: { color: '#ffffff' },
+            showlegend: true,
+            legend: {
+                x: 0.02,
+                y: 0.98
+            }
+        };
+        
+        Plotly.newPlot(container, traces, layout, {responsive: true});
     }
 }
 

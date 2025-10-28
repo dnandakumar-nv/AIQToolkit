@@ -87,7 +87,14 @@ async def get_trials_data(run_id: str) -> dict[str, Any]:
         trials_csv = output_dir / "trials_dataframe_params.csv"
 
         if not trials_csv.exists():
-            raise HTTPException(status_code=404, detail=f"Trials data for run {run_id} not found")
+            # No trials data - this is normal for prompt-only optimization
+            return {
+                "trials": [],
+                "metric_columns": [],
+                "param_columns": [],
+                "total_trials": 0,
+                "message": "No trials data available (prompt-only optimization or no numeric optimization run)"
+            }
 
         df = pd.read_csv(trials_csv)
 
@@ -224,7 +231,27 @@ async def get_insights(run_id: str) -> dict[str, Any]:
         trials_csv = output_dir / "trials_dataframe_params.csv"
 
         if not trials_csv.exists():
-            raise HTTPException(status_code=404, detail=f"Results for run {run_id} not found")
+            # No trials data - check if prompt optimization was run
+            prompt_files = list(output_dir.glob("optimized_prompts_gen*.json"))
+            if prompt_files:
+                # Prompt optimization was run
+                return {
+                    "run_id": run_id,
+                    "insights": [{
+                        "type": "info",
+                        "title": "Prompt Optimization Complete",
+                        "description": f"Completed {len(prompt_files)} generations of prompt optimization. No numeric parameter trials data available.",
+                        "severity": "info",
+                    }],
+                    "generated_at": pd.Timestamp.now().isoformat(),
+                }
+            else:
+                return {
+                    "run_id": run_id,
+                    "insights": [],
+                    "message": "No optimization results found",
+                    "generated_at": pd.Timestamp.now().isoformat(),
+                }
 
         df = pd.read_csv(trials_csv)
 
@@ -356,33 +383,63 @@ async def get_prompt_comparisons(run_id: str) -> dict[str, Any]:
             optimized_prompts = json.load(f)
             logger.info(f"Loaded {len(optimized_prompts)} FINAL optimized prompts from {final_prompts_file.name}")
 
-        # Get ORIGINAL prompts from the config file (BEFORE optimization)
-        # These are the true originals defined in the config, not from gen1 or any generation file
+        # Get ORIGINAL prompts from the configuration file (BEFORE any optimization)
         original_prompts = {}
+        
         try:
             from nat.runtime.loader import load_config
             from nat.profiler.parameter_optimization.optimizable_utils import walk_optimizables
 
             config_path = run_status.get("config_path")
+            logger.info(f"Loading original prompts from config: {config_path}")
+            
             if config_path:
                 config_obj = load_config(config_file=Path(config_path))
                 full_space = walk_optimizables(config_obj)
-
-                # Extract original prompts
+                
+                # Extract original prompts from the config object
                 for param_name, search_space in full_space.items():
                     if search_space.is_prompt:
-                        original_prompts[param_name] = (search_space.prompt, search_space.prompt_purpose or "N/A")
-
+                        logger.info(f"Processing prompt parameter: {param_name}")
+                        
+                        # Get the actual field value from the config object
+                        try:
+                            parts = param_name.split('.')
+                            obj = config_obj
+                            for part in parts:
+                                # Handle both dict and object attribute access
+                                if isinstance(obj, dict):
+                                    obj = obj[part]
+                                else:
+                                    obj = getattr(obj, part)
+                            
+                            original_prompt = obj
+                            if original_prompt:
+                                logger.info(f"Found original prompt for {param_name}: {original_prompt[:50]}...")
+                                original_prompts[param_name] = (original_prompt, search_space.prompt_purpose or "N/A")
+                            else:
+                                logger.warning(f"Original prompt value is empty for {param_name}")
+                        except Exception as e:
+                            logger.warning(f"Could not navigate to {param_name}: {e}")
+                            # Try using the SearchSpace prompt as fallback
+                            if search_space.prompt:
+                                logger.info(f"Using SearchSpace.prompt as fallback for {param_name}")
+                                original_prompts[param_name] = (search_space.prompt, search_space.prompt_purpose or "N/A")
+                
                 logger.info(f"Loaded {len(original_prompts)} original prompts from config")
         except Exception as e:
-            logger.warning(f"Could not load original prompts from config: {e}")
-            # Fallback: use gen1 as "original"
+            logger.error(f"Failed to load original prompts from config: {e}", exc_info=True)
+        
+        if not original_prompts:
+            logger.warning("Could not load original prompts from config, falling back to gen1")
+            # Fallback: use gen1 as the source of original prompts
             if prompt_files:
                 gen1_file = prompt_files[0]
+                logger.info(f"Using {gen1_file.name} as fallback source of original prompts")
                 with gen1_file.open() as f:
                     gen1_data = json.load(f)
                     original_prompts = gen1_data
-                    logger.info(f"Using gen1 as original prompts (fallback)")
+                    logger.info(f"Loaded {len(original_prompts)} prompts from gen1")
 
         # Format comparisons for frontend
         # COMPARISON: ORIGINAL (from config) vs FINAL (from optimized_prompts.json)
@@ -402,17 +459,22 @@ async def get_prompt_comparisons(run_id: str) -> dict[str, Any]:
                 if isinstance(orig_data, (list, tuple)) and len(orig_data) >= 2:
                     original_text = orig_data[0]
                 else:
-                    original_text = optimized_text  # Fallback
+                    original_text = str(orig_data)  # Handle string case
             else:
                 logger.warning(f"Original prompt not found for {param_name}, using optimized as fallback")
                 original_text = optimized_text  # Fallback if not found
+            
+            # Check if the prompt actually changed
+            prompt_changed = original_text != optimized_text
+            logger.info(f"Comparison for {param_name}: changed={prompt_changed}, original={original_text[:30]}..., optimized={optimized_text[:30]}...")
 
             # Create comparison: BEFORE (original from config) → AFTER (final from optimized_prompts.json)
             comparisons.append({
                 "name": param_name,
                 "purpose": purpose,
-                "before": original_text,  # Original from config
+                "before": original_text,  # Original from config/gen1
                 "after": optimized_text,  # Final from optimized_prompts.json
+                "changed": prompt_changed,  # Flag to indicate if prompt changed
             })
 
         logger.info(f"Prepared {len(comparisons)} prompt comparisons")
@@ -429,13 +491,86 @@ async def get_prompt_comparisons(run_id: str) -> dict[str, Any]:
                     "prompts": gen_data,
                 })
 
-        return {
+        # Load GA history data for visualizations
+        ga_history = None
+        ga_history_file = output_dir / "ga_history_prompts.csv"
+        logger.info(f"Checking for GA history file: {ga_history_file}")
+        logger.info(f"File exists: {ga_history_file.exists()}")
+        if ga_history_file.exists():
+            logger.info(f"Loading GA history from {ga_history_file.name}")
+            try:
+                ga_df = pd.read_csv(ga_history_file)
+                # Remove empty rows
+                ga_df = ga_df.dropna(how='all')
+                
+                # Extract metrics columns
+                metric_cols = [col for col in ga_df.columns if col.startswith('metric::')]
+                
+                # Convert dataframe to records and ensure all numpy types are converted to Python types
+                def convert_numpy_types(records):
+                    """Convert numpy types in dict to native Python types"""
+                    converted = []
+                    for record in records:
+                        converted_record = {}
+                        for key, value in record.items():
+                            if pd.isna(value):
+                                converted_record[key] = None
+                            elif hasattr(value, 'item'):  # numpy type
+                                converted_record[key] = value.item()
+                            else:
+                                converted_record[key] = value
+                        converted.append(converted_record)
+                    return converted
+                
+                # Process the data for visualization
+                ga_history = {
+                    "raw_data": convert_numpy_types(ga_df.to_dict(orient="records")),
+                    "generations": sorted([int(x) for x in ga_df['generation'].unique()]),
+                    "metrics": metric_cols,
+                    "summary": {
+                        "total_generations": int(ga_df['generation'].max()),
+                        "population_size": int(ga_df.groupby('generation')['index'].nunique().max()),
+                        "total_evaluations": int(len(ga_df)),
+                    },
+                    # Best fitness per generation (higher is better)
+                    "best_by_generation": convert_numpy_types(ga_df.loc[ga_df.groupby('generation')['scalar_fitness'].idxmax()].to_dict(orient="records")),
+                    # Metrics evolution
+                    "metrics_by_generation": {}
+                }
+                
+                # Calculate statistics per generation for each metric
+                for metric in metric_cols + ['scalar_fitness']:
+                    metric_stats = []
+                    for gen in ga_history["generations"]:
+                        gen_data = ga_df[ga_df['generation'] == gen][metric]
+                        metric_stats.append({
+                            "generation": int(gen),
+                            "mean": float(gen_data.mean()),
+                            "std": float(gen_data.std()),
+                            "min": float(gen_data.min()),
+                            "max": float(gen_data.max()),
+                            "best": float(gen_data.max()),  # Higher is better for all metrics including scalar_fitness
+                        })
+                    ga_history["metrics_by_generation"][metric] = metric_stats
+                
+                logger.info(f"Loaded GA history with {len(ga_df)} entries")
+            except Exception as e:
+                logger.error(f"Failed to load GA history: {e}", exc_info=True)
+
+        result = {
             "run_id": run_id,
             "comparisons": comparisons,
             "total_prompts": len(comparisons),
             "total_generations": len(prompt_files),
             "generations": all_generations,
+            "ga_history": ga_history,
         }
+        
+        logger.info(f"Returning prompt comparisons response with ga_history: {ga_history is not None}")
+        if ga_history:
+            logger.info(f"GA history summary: {ga_history.get('summary')}")
+        
+        return result
 
     except HTTPException:
         raise

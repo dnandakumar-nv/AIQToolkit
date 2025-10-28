@@ -568,6 +568,10 @@
         .prompt-comparison.diff-mode {
             grid-template-columns: 1fr;
         }
+        
+        .prompt-comparison.no-change {
+            opacity: 0.7;
+        }
 
         .prompt-box {
             background: var(--background);
@@ -946,6 +950,44 @@
                             <p style="text-align: center; color: var(--text-secondary); padding: 40px;">
                                 Run an optimization to see prompt comparisons
                             </p>
+                        </div>
+                    </div>
+                    
+                    <!-- GA History Visualizations -->
+                    <div class="card" id="ga-history-card" style="margin-top: 24px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="material-icons">analytics</span>
+                                Genetic Algorithm Evolution
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <p id="ga-test-message" style="color: var(--text-secondary); text-align: center; padding: 20px; display: none;">Run genetic prompt optimization to see visualizations</p>
+                            
+                            <!-- GA Summary Stats -->
+                            <div id="ga-summary-stats" style="margin-bottom: 24px; display: none;">
+                                <div class="grid-3" style="gap: 16px;">
+                                    <div style="background: var(--surface); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                                        <h4 style="color: var(--text-secondary); font-size: 12px; margin: 0 0 8px 0;">TOTAL GENERATIONS</h4>
+                                        <p style="font-size: 24px; font-weight: 600; margin: 0;" id="ga-total-generations">-</p>
+                                    </div>
+                                    <div style="background: var(--surface); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                                        <h4 style="color: var(--text-secondary); font-size: 12px; margin: 0 0 8px 0;">POPULATION SIZE</h4>
+                                        <p style="font-size: 24px; font-weight: 600; margin: 0;" id="ga-population-size">-</p>
+                                    </div>
+                                    <div style="background: var(--surface); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                                        <h4 style="color: var(--text-secondary); font-size: 12px; margin: 0 0 8px 0;">FITNESS IMPROVEMENT</h4>
+                                        <p style="font-size: 24px; font-weight: 600; margin: 0; color: var(--success-color);" id="ga-fitness-improvement">-</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="grid-2">
+                                <div id="fitness-evolution-chart" style="height: 600px;"></div>
+                                <div id="metrics-evolution-chart" style="height: 600px;"></div>
+                            </div>
+                            <div id="metrics-heatmap" style="height: 600px; margin-top: 24px;"></div>
+                            <div id="population-scatter" style="height: 600px; margin-top: 24px;"></div>
                         </div>
                     </div>
                 </div>
