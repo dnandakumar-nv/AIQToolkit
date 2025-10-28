@@ -483,13 +483,393 @@ class OptimizerApp {
             if (!trialsResponse.ok) throw new Error('Failed to load trials');
 
             const trialsData = await trialsResponse.json();
+
+            // Render all visualizations
             this.renderTrialsTable(trialsData);
+            this.renderColorCodedTable(trialsData);
             this.renderParetoVisualization(trialsData);
+            this.renderSpiderPlot(trialsData);
+            this.renderHistograms(trialsData);
+            this.renderConvergencePlot(trialsData);
+            this.renderCorrelationHeatmap(trialsData);
 
         } catch (error) {
             console.error('Error loading results:', error);
             this.showNotification('Error loading results', 'error');
         }
+    }
+
+    renderColorCodedTable(data) {
+        const container = document.getElementById('color-coded-table');
+        if (!container) return;
+
+        const thead = container.querySelector('thead tr');
+        const tbody = container.querySelector('tbody');
+        if (!thead || !tbody) return;
+
+        tbody.innerHTML = '';
+        thead.innerHTML = '<th>Trial</th>'; // Reset and add trial column
+
+        const valueColumns = data.metric_columns || [];
+        const trials = data.trials || [];
+
+        // Add header columns for each metric
+        valueColumns.forEach(col => {
+            const th = document.createElement('th');
+            th.textContent = col.replace('values_', '');
+            thead.appendChild(th);
+        });
+
+        // Calculate min/max for each metric for color coding
+        const metricRanges = {};
+        valueColumns.forEach(col => {
+            const values = trials.map(t => t[col]).filter(v => v != null);
+            metricRanges[col] = {
+                min: Math.min(...values),
+                max: Math.max(...values),
+            };
+        });
+
+        // Helper to get color based on value (green = better, red = worse)
+        const getColorForValue = (value, col, direction = 'maximize') => {
+            const range = metricRanges[col];
+            if (!range || value == null) return 'transparent';
+
+            const normalized = (value - range.min) / (range.max - range.min);
+
+            // For minimize metrics, flip the colors
+            const intensity = direction === 'minimize' ? (1 - normalized) : normalized;
+
+            if (intensity > 0.8) return 'rgba(76, 175, 80, 0.3)'; // Green
+            if (intensity > 0.6) return 'rgba(76, 175, 80, 0.2)';
+            if (intensity < 0.2) return 'rgba(244, 67, 54, 0.3)'; // Red
+            if (intensity < 0.4) return 'rgba(244, 67, 54, 0.2)';
+            return 'transparent';
+        };
+
+        // Limit to top 50 trials for table display
+        trials.slice(0, 50).forEach((trial, idx) => {
+            const row = tbody.insertRow();
+
+            // Trial number
+            const trialCell = row.insertCell();
+            trialCell.textContent = trial.number || idx;
+            trialCell.style.fontWeight = '600';
+
+            // Metric values with color coding
+            valueColumns.forEach(col => {
+                const cell = row.insertCell();
+                const value = trial[col];
+
+                if (value != null) {
+                    cell.textContent = value.toFixed(4);
+                    // Assume maximize by default (you can enhance this with direction info)
+                    cell.style.backgroundColor = getColorForValue(value, col, 'maximize');
+                } else {
+                    cell.textContent = '-';
+                }
+            });
+        });
+    }
+
+    renderSpiderPlot(data) {
+        if (!data.trials || data.trials.length === 0) return;
+
+        const valueColumns = data.metric_columns || [];
+        if (valueColumns.length < 3) {
+            document.getElementById('spider-viz').innerHTML =
+                '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">Need at least 3 metrics for spider/radar plot</p>';
+            return;
+        }
+
+        // Normalize metrics to 0-1 scale for spider plot
+        const metricRanges = {};
+        valueColumns.forEach(col => {
+            const values = data.trials.map(t => t[col]).filter(v => v != null);
+            metricRanges[col] = {
+                min: Math.min(...values),
+                max: Math.max(...values),
+            };
+        });
+
+        const normalize = (value, col) => {
+            const range = metricRanges[col];
+            if (!range || range.max === range.min) return 0.5;
+            return (value - range.min) / (range.max - range.min);
+        };
+
+        // Show best, worst, and median trials
+        const trials = data.trials;
+
+        // Calculate overall score (average normalized metrics)
+        const trialsWithScores = trials.map(trial => {
+            const scores = valueColumns.map(col => normalize(trial[col] || 0, col));
+            const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+            return { trial, avgScore };
+        });
+
+        trialsWithScores.sort((a, b) => b.avgScore - a.avgScore);
+
+        const bestTrial = trialsWithScores[0].trial;
+        const worstTrial = trialsWithScores[trialsWithScores.length - 1].trial;
+        const medianTrial = trialsWithScores[Math.floor(trialsWithScores.length / 2)].trial;
+
+        const traces = [
+            {
+                type: 'scatterpolar',
+                r: valueColumns.map(col => normalize(bestTrial[col] || 0, col)),
+                theta: valueColumns,
+                fill: 'toself',
+                name: `Best Trial #${bestTrial.number}`,
+                line: { color: '#76b900' },
+            },
+            {
+                type: 'scatterpolar',
+                r: valueColumns.map(col => normalize(medianTrial[col] || 0, col)),
+                theta: valueColumns,
+                fill: 'toself',
+                name: `Median Trial #${medianTrial.number}`,
+                line: { color: '#00a3e0' },
+            },
+            {
+                type: 'scatterpolar',
+                r: valueColumns.map(col => normalize(worstTrial[col] || 0, col)),
+                theta: valueColumns,
+                fill: 'toself',
+                name: `Worst Trial #${worstTrial.number}`,
+                line: { color: '#f44336' },
+            },
+        ];
+
+        const layout = {
+            polar: {
+                radialaxis: {
+                    visible: true,
+                    range: [0, 1],
+                    color: '#fff',
+                },
+                angularaxis: {
+                    color: '#fff',
+                },
+            },
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            font: { color: '#fff' },
+            title: 'Multi-Metric Comparison (Normalized)',
+            showlegend: true,
+            legend: {
+                x: 0,
+                y: 1,
+            },
+        };
+
+        Plotly.newPlot('spider-viz', traces, layout, { responsive: true });
+    }
+
+    renderHistograms(data) {
+        if (!data.trials || data.trials.length === 0) return;
+
+        const valueColumns = data.metric_columns || [];
+        const container = document.getElementById('histograms-viz');
+
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        // Create a histogram for each metric
+        valueColumns.forEach((col, idx) => {
+            const values = data.trials.map(t => t[col]).filter(v => v != null);
+
+            if (values.length === 0) return;
+
+            // Create div for this histogram
+            const histDiv = document.createElement('div');
+            histDiv.id = `histogram-${idx}`;
+            histDiv.style.marginBottom = '20px';
+            container.appendChild(histDiv);
+
+            const trace = {
+                x: values,
+                type: 'histogram',
+                name: col,
+                marker: {
+                    color: idx === 0 ? '#76b900' : idx === 1 ? '#00a3e0' : '#ff9800',
+                    line: {
+                        color: '#fff',
+                        width: 1,
+                    },
+                },
+                opacity: 0.7,
+            };
+
+            const layout = {
+                title: `Distribution of ${col}`,
+                xaxis: { title: col, color: '#fff' },
+                yaxis: { title: 'Frequency', color: '#fff' },
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                font: { color: '#fff' },
+                bargap: 0.1,
+            };
+
+            Plotly.newPlot(histDiv.id, [trace], layout, { responsive: true });
+        });
+    }
+
+    renderConvergencePlot(data) {
+        if (!data.trials || data.trials.length === 0) return;
+
+        const valueColumns = data.metric_columns || [];
+        const trials = data.trials;
+
+        // Create traces for each metric showing how it changes over trials
+        const traces = valueColumns.map((col, idx) => {
+            const xValues = trials.map(t => t.number || 0);
+            const yValues = trials.map(t => t[col] || null);
+
+            const colors = ['#76b900', '#00a3e0', '#ff9800', '#f44336', '#9c27b0'];
+
+            return {
+                x: xValues,
+                y: yValues,
+                mode: 'lines+markers',
+                name: col,
+                line: {
+                    color: colors[idx % colors.length],
+                    width: 2,
+                },
+                marker: {
+                    size: 6,
+                },
+            };
+        });
+
+        const layout = {
+            title: 'Optimization Convergence Over Time',
+            xaxis: {
+                title: 'Trial Number',
+                color: '#fff',
+            },
+            yaxis: {
+                title: 'Metric Value',
+                color: '#fff',
+            },
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            font: { color: '#fff' },
+            hovermode: 'closest',
+            showlegend: true,
+            legend: {
+                x: 1,
+                y: 1,
+                xanchor: 'right',
+            },
+        };
+
+        Plotly.newPlot('convergence-viz', traces, layout, { responsive: true });
+    }
+
+    renderCorrelationHeatmap(data) {
+        if (!data.trials || data.trials.length === 0) return;
+
+        const paramColumns = data.param_columns || [];
+        const valueColumns = data.metric_columns || [];
+
+        if (paramColumns.length === 0 || valueColumns.length === 0) {
+            document.getElementById('correlation-viz').innerHTML =
+                '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No parameter data available for correlation analysis</p>';
+            return;
+        }
+
+        // Calculate correlations between parameters and metrics
+        const correlations = [];
+        const labels = [];
+
+        paramColumns.forEach(paramCol => {
+            const paramValues = data.trials.map(t => t[paramCol]).filter(v => v != null && !isNaN(v));
+
+            if (paramValues.length < 2) return; // Skip if not numeric or insufficient data
+
+            const rowCorrelations = [];
+
+            valueColumns.forEach(metricCol => {
+                const metricValues = data.trials.map(t => t[metricCol]).filter(v => v != null);
+
+                if (metricValues.length !== paramValues.length) {
+                    rowCorrelations.push(0);
+                    return;
+                }
+
+                // Calculate Pearson correlation
+                const correlation = this.calculateCorrelation(paramValues, metricValues);
+                rowCorrelations.push(correlation);
+            });
+
+            correlations.push(rowCorrelations);
+            labels.push(paramCol.replace('params_', ''));
+        });
+
+        if (correlations.length === 0) {
+            document.getElementById('correlation-viz').innerHTML =
+                '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No numeric parameters for correlation analysis</p>';
+            return;
+        }
+
+        const trace = {
+            z: correlations,
+            x: valueColumns.map(c => c.replace('values_', '')),
+            y: labels,
+            type: 'heatmap',
+            colorscale: [
+                [0, '#f44336'],
+                [0.5, '#ffffff'],
+                [1, '#76b900']
+            ],
+            zmid: 0,
+            zmin: -1,
+            zmax: 1,
+            text: correlations.map(row => row.map(v => v.toFixed(3))),
+            texttemplate: '%{text}',
+            textfont: {
+                color: '#000',
+            },
+            hovertemplate: 'Param: %{y}<br>Metric: %{x}<br>Correlation: %{z:.3f}<extra></extra>',
+        };
+
+        const layout = {
+            title: 'Parameter-Metric Correlation Heatmap',
+            xaxis: {
+                title: 'Metrics',
+                color: '#fff',
+            },
+            yaxis: {
+                title: 'Parameters',
+                color: '#fff',
+            },
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            font: { color: '#fff' },
+        };
+
+        Plotly.newPlot('correlation-viz', [trace], layout, { responsive: true });
+    }
+
+    calculateCorrelation(x, y) {
+        const n = x.length;
+        if (n === 0) return 0;
+
+        const sumX = x.reduce((a, b) => a + b, 0);
+        const sumY = y.reduce((a, b) => a + b, 0);
+        const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+        const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+        const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
+
+        const numerator = n * sumXY - sumX * sumY;
+        const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+
+        if (denominator === 0) return 0;
+
+        return numerator / denominator;
     }
 
     renderTrialsTable(data) {

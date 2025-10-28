@@ -731,21 +731,76 @@
                     </div>
                 </div>
                 <div class="content">
+                    <!-- Spider/Radar Plot -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="material-icons">radar</span>
+                                Multi-Metric Spider Plot
+                            </div>
+                        </div>
+                        <div id="spider-viz" class="viz-container"></div>
+                    </div>
+
+                    <!-- 2D Pareto Front -->
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title">
                                 <span class="material-icons">assessment</span>
-                                Pareto Front Visualization
+                                Pareto Front (2D)
                             </div>
                         </div>
                         <div id="pareto-viz" class="viz-container"></div>
                     </div>
 
+                    <!-- Convergence Plot -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="material-icons">trending_up</span>
+                                Optimization Convergence
+                            </div>
+                        </div>
+                        <div id="convergence-viz" class="viz-container"></div>
+                    </div>
+
+                    <!-- Histograms -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="material-icons">bar_chart</span>
+                                Metric Distributions
+                            </div>
+                        </div>
+                        <div id="histograms-viz" class="viz-container"></div>
+                    </div>
+
+                    <!-- Color-Coded Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="material-icons">gradient</span>
+                                Trials Heatmap (Color-Coded by Performance)
+                            </div>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table class="data-table" id="color-coded-table">
+                                <thead>
+                                    <tr id="color-coded-header">
+                                        <th>Trial</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Regular Trials Table -->
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title">
                                 <span class="material-icons">table_chart</span>
-                                Trials Data
+                                Trials Data (All Trials)
                             </div>
                         </div>
                         <div style="overflow-x: auto;">
