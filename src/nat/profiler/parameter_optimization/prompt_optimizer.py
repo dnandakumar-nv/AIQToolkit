@@ -279,8 +279,38 @@ async def optimize_prompts(
             )
             # Run reps sequentially under the same semaphore to avoid overload
             all_results: list[list[tuple[str, Any]]] = []
+
+            # Create reusable functions outside the loop
+            import concurrent.futures
+
+            def run_eval_in_thread(eval_cfg_param):
+                """Run async eval in a thread with standard asyncio."""
+                import asyncio as thread_asyncio
+
+                async def _run_single_eval():
+                    eval_run = EvaluationRun(config=eval_cfg_param)
+                    result = await eval_run.run_and_evaluate()
+                    return result.evaluation_results
+
+                # Force standard event loop policy for this thread
+                thread_asyncio.set_event_loop_policy(
+                    thread_asyncio.DefaultEventLoopPolicy()
+                )
+
+                # Re-apply our nest_asyncio patch in this thread
+                _patch_nest_asyncio()
+
+                # Run the evaluation
+                return thread_asyncio.run(_run_single_eval())
+
+            # Run evaluations
             for _ in range(reps):
-                res = (await EvaluationRun(config=eval_cfg).run_and_evaluate()).evaluation_results
+                with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=1
+                ) as executor:
+                    future = executor.submit(run_eval_in_thread, eval_cfg)
+                    res = future.result()
+
                 all_results.append(res)
 
             metrics: dict[str, float] = {}
