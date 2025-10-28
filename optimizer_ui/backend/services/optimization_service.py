@@ -33,7 +33,7 @@ from pathlib import Path
 from typing import Any
 
 from nat.data_models.optimizer import OptimizerRunConfig
-from nat.profiler.parameter_optimization.optimizer_runtime import optimize_config
+from optimizer_ui.backend.services.async_optimizer import AsyncOptimizer
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,7 @@ class OptimizationService:
         self.runs: dict[str, dict[str, Any]] = {}
         self.subscribers: dict[str, list[asyncio.Queue]] = defaultdict(list)
         self.tasks: dict[str, asyncio.Task] = {}
+        self.async_optimizer = AsyncOptimizer()  # Async optimizer instance
 
     async def start_optimization(
         self,
@@ -142,25 +143,25 @@ class OptimizationService:
             # Run optimization with progress callback
             logger.info(f"Starting optimization for run {run_id}")
 
-            # Create a wrapper to track progress
-            # Note: The actual optimizer doesn't have a built-in progress callback,
-            # so we'll use asyncio to periodically check and estimate progress
+            # Create progress callback
+            async def progress_callback(trial_count):
+                self.runs[run_id]["current_trial"] = trial_count
+                total_trials = self.runs[run_id].get("total_trials")
+                if total_trials:
+                    progress = (trial_count / total_trials) * 100
+                    self.runs[run_id]["progress"] = min(progress, 99.0)
+                    self.runs[run_id]["message"] = f"Running trial {trial_count}/{total_trials}..."
+                else:
+                    self.runs[run_id]["progress"] = min(trial_count * 5, 99.0)
+                    self.runs[run_id]["message"] = f"Running trial {trial_count}..."
+                await self._send_update(run_id, self.runs[run_id])
 
-            # Start progress monitoring task
-            monitor_task = asyncio.create_task(
-                self._monitor_progress(run_id, config_obj.optimizer.output_path)
+            # Run optimization with progress monitoring
+            result = await self.async_optimizer.run_optimization_with_progress(
+                opt_run_config,
+                progress_callback
             )
-
-            # Run optimization
-            result = await optimize_config(opt_run_config)
             logger.info("Optimization completed with result: %s", result)
-
-            # Cancel monitor task
-            monitor_task.cancel()
-            try:
-                await monitor_task
-            except asyncio.CancelledError:
-                pass
 
             # Update status to completed
             self.runs[run_id]["status"] = "completed"
@@ -305,3 +306,7 @@ class OptimizationService:
                     await task
                 except asyncio.CancelledError:
                     pass
+        
+        # Cleanup the async optimizer
+        if hasattr(self, 'async_optimizer'):
+            self.async_optimizer.cleanup()

@@ -135,7 +135,25 @@
         .content {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 32px;
+            min-height: 0; /* Fix for flex scrolling */
+        }
+
+        /* Pages */
+        .page {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .page.hidden {
+            display: none;
+        }
+
+        .page.active {
+            display: flex;
         }
 
         /* Cards */
@@ -303,6 +321,7 @@
         .grid {
             display: grid;
             gap: 24px;
+            margin-bottom: 32px;
         }
 
         .grid-2 {
@@ -767,6 +786,8 @@
                         <div id="insights-container"></div>
                     </div>
 
+                    <!-- Parameter Correlations visualization coming soon -->
+                    <!-- 
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title">
@@ -776,6 +797,7 @@
                         </div>
                         <div id="correlation-viz" class="viz-container"></div>
                     </div>
+                    -->
                 </div>
             </div>
         </div>

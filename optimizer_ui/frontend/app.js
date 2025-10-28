@@ -22,6 +22,7 @@ class OptimizerApp {
     async init() {
         this.setupNavigation();
         this.setupMonacoEditor();
+        // Silently check backend connection
         this.checkBackendConnection();
     }
 
@@ -41,15 +42,11 @@ class OptimizerApp {
 
             const data = await response.json();
             console.log('Backend health check successful:', data);
-            // Show success notification only in development/debug mode
-            // this.showNotification('✓ Backend connected', 'success', 2000);
         } catch (error) {
-            this.showNotification(
-                `⚠️ Cannot connect to backend server at ${API_BASE}. Please ensure the server is running.`,
-                'error',
-                10000  // Show for 10 seconds
-            );
-            console.error('Backend connection error:', error);
+            // Only log to console, don't show notification on init
+            // This avoids confusion when the page loads
+            console.warn('Backend connection check failed (this is normal on first load):', error);
+            console.warn(`Make sure the backend is running at ${API_BASE}`);
         }
     }
 
