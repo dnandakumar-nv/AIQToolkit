@@ -87,21 +87,40 @@ class AsyncOptimizer:
             loop.close()
     
     async def _monitor_progress(self, output_path: Path, progress_callback):
-        """Monitor optimization progress by checking output files."""
+        """Monitor optimization progress by checking output files for both phases."""
         last_trial_count = 0
-        
+        last_prompt_gen = 0
+        numeric_phase_complete = False
+
         while True:
             await asyncio.sleep(2)  # Check every 2 seconds
-            
-            # Look for trial files
+
+            # Phase 1: Monitor numeric optimization trials
             trial_files = list(output_path.glob("config_numeric_trial_*.yml"))
             current_trial_count = len(trial_files)
-            
+
             if current_trial_count > last_trial_count:
                 last_trial_count = current_trial_count
-                # Call the progress callback
+                # Call the progress callback for numeric phase
                 if progress_callback:
-                    await progress_callback(current_trial_count)
+                    await progress_callback(current_trial_count, phase="numeric")
+
+            # Check if numeric optimization is complete (trials_dataframe_params.csv exists)
+            trials_csv = output_path / "trials_dataframe_params.csv"
+            if trials_csv.exists() and not numeric_phase_complete:
+                numeric_phase_complete = True
+                logger.info("Numeric optimization phase completed, monitoring prompt optimization...")
+
+            # Phase 2: Monitor prompt optimization generations (only after numeric is done or if no numeric trials)
+            if numeric_phase_complete or current_trial_count == 0:
+                prompt_gen_files = list(output_path.glob("optimized_prompts_gen*.json"))
+                current_prompt_gen = len(prompt_gen_files)
+
+                if current_prompt_gen > last_prompt_gen:
+                    last_prompt_gen = current_prompt_gen
+                    # Call the progress callback for prompt phase
+                    if progress_callback:
+                        await progress_callback(current_prompt_gen, phase="prompt")
     
     def cleanup(self):
         """Cleanup resources."""

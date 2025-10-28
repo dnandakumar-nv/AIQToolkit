@@ -779,7 +779,7 @@
                     <div class="grid grid-3">
                         <div class="stat-card">
                             <div class="stat-value" id="stat-trials">-</div>
-                            <div class="stat-label">Total Trials</div>
+                            <div class="stat-label">Numeric Trials</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-value" id="stat-current">-</div>
@@ -787,7 +787,22 @@
                         </div>
                         <div class="stat-card">
                             <div class="stat-value" id="stat-progress">0%</div>
-                            <div class="stat-label">Progress</div>
+                            <div class="stat-label">Overall Progress</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-3" id="prompt-stats" style="display: none; margin-top: 16px;">
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-generations">-</div>
+                            <div class="stat-label">Total Generations</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-current-gen">-</div>
+                            <div class="stat-label">Current Generation</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" style="color: var(--secondary-color);">Prompts</div>
+                            <div class="stat-label">Optimization Phase</div>
                         </div>
                     </div>
 

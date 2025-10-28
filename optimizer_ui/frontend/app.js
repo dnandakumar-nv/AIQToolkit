@@ -374,13 +374,26 @@ class OptimizerApp {
     handleOptimizationUpdate(data) {
         if (data.type === 'heartbeat') return;
 
-        // Update stats
+        // Update numeric optimization stats
         if (data.total_trials) {
             document.getElementById('stat-trials').textContent = data.total_trials;
         }
-        if (data.current_trial) {
+        if (data.current_trial !== undefined && data.current_trial !== null) {
             document.getElementById('stat-current').textContent = data.current_trial;
         }
+
+        // Update prompt optimization stats
+        if (data.prompt_enabled) {
+            document.getElementById('prompt-stats').style.display = 'grid';
+            if (data.total_generations) {
+                document.getElementById('stat-generations').textContent = data.total_generations;
+            }
+            if (data.current_generation !== undefined && data.current_generation !== null) {
+                document.getElementById('stat-current-gen').textContent = data.current_generation;
+            }
+        }
+
+        // Update overall progress
         if (data.progress !== undefined) {
             const progress = Math.round(data.progress);
             document.getElementById('stat-progress').textContent = `${progress}%`;
@@ -595,46 +608,25 @@ class OptimizerApp {
         try {
             console.log('Loading prompt comparisons...');
 
-            // Get the best trial info
-            const trialsResponse = await fetch(`${API_BASE}/results/${runId}/trials`);
-            if (!trialsResponse.ok) throw new Error('Failed to load trials for prompts');
+            // Get prompt comparisons from the new endpoint
+            const promptsResponse = await fetch(`${API_BASE}/results/${runId}/prompts`);
+            if (!promptsResponse.ok) {
+                console.warn('Failed to load prompts, status:', promptsResponse.status);
+                throw new Error('Failed to load prompts');
+            }
 
-            const trialsData = await trialsResponse.json();
+            const promptsData = await promptsResponse.json();
+            console.log('Prompts data received:', promptsData);
 
-            // Extract prompt parameters from trials
-            const paramColumns = trialsData.param_columns || [];
-            const promptParams = paramColumns.filter(col => col.includes('prompt'));
-
-            if (promptParams.length === 0) {
+            if (!promptsData.comparisons || promptsData.comparisons.length === 0) {
                 document.getElementById('prompts-container').innerHTML =
-                    '<p class="no-prompts-message">No prompt parameters found in optimization results</p>';
+                    '<p class="no-prompts-message">No prompt optimization results found. ' +
+                    'Prompts are only available if prompt optimization was enabled in the config.</p>';
                 return;
             }
 
-            // Get best trial (last trial typically has best results in optimization)
-            const trials = trialsData.trials || [];
-            const bestTrial = trials[trials.length - 1];
-
-            // Create prompt comparisons from optimizable params and best trial
-            const promptComparisons = [];
-
-            promptParams.forEach(paramCol => {
-                const paramName = paramCol.replace('params_', '');
-                const originalParam = this.optimizableParams?.[paramName];
-                const optimizedValue = bestTrial[paramCol];
-
-                if (originalParam && originalParam.prompt) {
-                    promptComparisons.push({
-                        name: paramName,
-                        purpose: originalParam.prompt_purpose || 'N/A',
-                        before: originalParam.prompt,
-                        after: optimizedValue || originalParam.prompt,
-                    });
-                }
-            });
-
-            this.renderPromptComparisons(promptComparisons);
-            console.log('Prompt comparisons loaded successfully');
+            this.renderPromptComparisons(promptsData.comparisons);
+            console.log('Prompt comparisons loaded successfully:', promptsData.comparisons.length, 'prompts');
 
         } catch (error) {
             console.error('Error loading prompt comparisons:', error);

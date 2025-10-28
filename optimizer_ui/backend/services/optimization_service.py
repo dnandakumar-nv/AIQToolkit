@@ -134,26 +134,60 @@ class OptimizationService:
             self.runs[run_id]["message"] = "Optimization in progress..."
             await self._send_update(run_id, self.runs[run_id])
 
-            # Load config to extract total trials
+            # Load config to extract total trials and generations
             from nat.runtime.loader import load_config
             config_obj = load_config(config_file=opt_run_config.config_file)
-            if config_obj.optimizer.numeric.enabled:
+
+            # Store both phase configurations
+            numeric_enabled = config_obj.optimizer.numeric.enabled
+            prompt_enabled = config_obj.optimizer.prompt.enabled
+
+            if numeric_enabled:
                 self.runs[run_id]["total_trials"] = config_obj.optimizer.numeric.n_trials
+                self.runs[run_id]["numeric_enabled"] = True
+            else:
+                self.runs[run_id]["numeric_enabled"] = False
+
+            if prompt_enabled:
+                self.runs[run_id]["total_generations"] = config_obj.optimizer.prompt.ga_generations
+                self.runs[run_id]["prompt_enabled"] = True
+            else:
+                self.runs[run_id]["prompt_enabled"] = False
 
             # Run optimization with progress callback
-            logger.info(f"Starting optimization for run {run_id}")
+            logger.info(f"Starting optimization for run {run_id} (numeric={numeric_enabled}, prompt={prompt_enabled})")
 
-            # Create progress callback
-            async def progress_callback(trial_count):
-                self.runs[run_id]["current_trial"] = trial_count
-                total_trials = self.runs[run_id].get("total_trials")
-                if total_trials:
-                    progress = (trial_count / total_trials) * 100
-                    self.runs[run_id]["progress"] = min(progress, 99.0)
-                    self.runs[run_id]["message"] = f"Running trial {trial_count}/{total_trials}..."
-                else:
-                    self.runs[run_id]["progress"] = min(trial_count * 5, 99.0)
-                    self.runs[run_id]["message"] = f"Running trial {trial_count}..."
+            # Create progress callback that handles both phases
+            async def progress_callback(count, phase="numeric"):
+                if phase == "numeric":
+                    self.runs[run_id]["current_trial"] = count
+                    total_trials = self.runs[run_id].get("total_trials")
+                    if total_trials:
+                        # Calculate progress for numeric phase (0-50% if prompts enabled, 0-100% otherwise)
+                        max_progress = 50.0 if prompt_enabled else 99.0
+                        progress = (count / total_trials) * max_progress
+                        self.runs[run_id]["progress"] = min(progress, max_progress)
+                        self.runs[run_id]["message"] = f"Numeric optimization: trial {count}/{total_trials}..."
+                    else:
+                        self.runs[run_id]["progress"] = min(count * 5, 99.0)
+                        self.runs[run_id]["message"] = f"Running trial {count}..."
+
+                elif phase == "prompt":
+                    self.runs[run_id]["current_generation"] = count
+                    total_gens = self.runs[run_id].get("total_generations")
+                    if total_gens:
+                        # Calculate progress for prompt phase (50-100%)
+                        base_progress = 50.0 if numeric_enabled else 0.0
+                        progress_range = 50.0 if numeric_enabled else 100.0
+                        progress = base_progress + (count / total_gens) * progress_range
+                        self.runs[run_id]["progress"] = min(progress, 99.0)
+                        self.runs[run_id]["message"] = f"Prompt optimization: generation {count}/{total_gens}..."
+                    else:
+                        # Estimate if total not available
+                        base_progress = 50.0 if numeric_enabled else 0.0
+                        self.runs[run_id]["progress"] = min(base_progress + count * 5, 99.0)
+                        self.runs[run_id]["message"] = f"Prompt optimization: generation {count}..."
+
                 await self._send_update(run_id, self.runs[run_id])
 
             # Run optimization with progress monitoring

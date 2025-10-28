@@ -297,3 +297,146 @@ async def get_insights(run_id: str) -> dict[str, Any]:
     except Exception as e:
         logger.error(f"Error generating insights: {e}")
         raise HTTPException(status_code=500, detail=f"Error generating insights: {str(e)}")
+
+
+@router.get("/{run_id}/prompts")
+async def get_prompt_comparisons(run_id: str) -> dict[str, Any]:
+    """
+    Get prompt comparisons showing before/after optimization.
+    Reads from optimized_prompts_gen*.json files.
+
+    File format: {param_name: [prompt_text, purpose]}
+    """
+    try:
+        # Get the actual output path from the optimization service
+        run_status = optimization_service.get_status(run_id)
+        if not run_status or "result_path" not in run_status:
+            raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+        output_dir = Path(run_status["result_path"])
+
+        if not output_dir.exists():
+            raise HTTPException(status_code=404, detail=f"Results for run {run_id} not found")
+
+        # Find all generation files sorted numerically
+        import json
+        import re
+
+        prompt_files = list(output_dir.glob("optimized_prompts_gen*.json"))
+        if prompt_files:
+            # Sort by generation number
+            def get_gen_num(path):
+                match = re.search(r'gen(\d+)', path.stem)
+                return int(match.group(1)) if match else 0
+            prompt_files = sorted(prompt_files, key=get_gen_num)
+
+        logger.info(f"Found {len(prompt_files)} prompt generation files for run {run_id}")
+
+        if not prompt_files:
+            # No prompt optimization was run
+            logger.info(f"No prompt files found in {output_dir}")
+            return {
+                "run_id": run_id,
+                "comparisons": [],
+                "message": "No prompt optimization results found",
+            }
+
+        # Get the final optimized prompts (preferably from optimized_prompts.json)
+        final_prompts_file = output_dir / "optimized_prompts.json"
+        if not final_prompts_file.exists():
+            # Use the last generation if final doesn't exist
+            final_prompts_file = prompt_files[-1]
+            logger.info(f"Using last generation file: {final_prompts_file}")
+        else:
+            logger.info(f"Using final prompts file: {final_prompts_file}")
+
+        # Load final prompts
+        with final_prompts_file.open() as f:
+            optimized_prompts = json.load(f)
+            logger.info(f"Loaded {len(optimized_prompts)} optimized prompts")
+
+        # Get original prompts from gen1 (first generation typically contains best of initial population)
+        # But we want the TRUE originals from the config, not gen1
+        # So let's get them from the config file directly
+        original_prompts = {}
+        try:
+            from nat.runtime.loader import load_config
+            from nat.profiler.parameter_optimization.optimizable_utils import walk_optimizables
+
+            config_path = run_status.get("config_path")
+            if config_path:
+                config_obj = load_config(config_file=Path(config_path))
+                full_space = walk_optimizables(config_obj)
+
+                # Extract original prompts
+                for param_name, search_space in full_space.items():
+                    if search_space.is_prompt:
+                        original_prompts[param_name] = (search_space.prompt, search_space.prompt_purpose or "N/A")
+
+                logger.info(f"Loaded {len(original_prompts)} original prompts from config")
+        except Exception as e:
+            logger.warning(f"Could not load original prompts from config: {e}")
+            # Fallback: use gen1 as "original"
+            if prompt_files:
+                gen1_file = prompt_files[0]
+                with gen1_file.open() as f:
+                    gen1_data = json.load(f)
+                    original_prompts = gen1_data
+                    logger.info(f"Using gen1 as original prompts (fallback)")
+
+        # Format for frontend
+        # Structure: {param_name: [prompt_text, purpose]}
+        comparisons = []
+        for param_name, prompt_data in optimized_prompts.items():
+            # Handle both tuple and list formats
+            if isinstance(prompt_data, (list, tuple)) and len(prompt_data) >= 2:
+                optimized_text, purpose = prompt_data[0], prompt_data[1]
+            else:
+                logger.warning(f"Unexpected format for {param_name}: {type(prompt_data)}")
+                continue
+
+            # Get original prompt
+            if param_name in original_prompts:
+                orig_data = original_prompts[param_name]
+                if isinstance(orig_data, (list, tuple)) and len(orig_data) >= 2:
+                    original_text = orig_data[0]
+                else:
+                    original_text = optimized_text  # Fallback
+            else:
+                original_text = optimized_text  # Fallback if not found
+
+            comparisons.append({
+                "name": param_name,
+                "purpose": purpose,
+                "before": original_text,
+                "after": optimized_text,
+            })
+
+        logger.info(f"Prepared {len(comparisons)} prompt comparisons")
+
+        # Also include generation history
+        all_generations = []
+        for gen_file in prompt_files:
+            match = re.search(r'gen(\d+)', gen_file.stem)
+            gen_num = int(match.group(1)) if match else 0
+            with gen_file.open() as f:
+                gen_data = json.load(f)
+                all_generations.append({
+                    "generation": gen_num,
+                    "prompts": gen_data,
+                })
+
+        return {
+            "run_id": run_id,
+            "comparisons": comparisons,
+            "total_prompts": len(comparisons),
+            "total_generations": len(prompt_files),
+            "generations": all_generations,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting prompt comparisons: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error getting prompt comparisons: {str(e)}")
+
