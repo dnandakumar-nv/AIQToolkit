@@ -483,6 +483,8 @@ class OptimizerApp {
             if (!trialsResponse.ok) throw new Error('Failed to load trials');
 
             const trialsData = await trialsResponse.json();
+            console.log('Loaded trials data:', trialsData);
+            console.log('First trial:', trialsData.trials?.[0]);
 
             // Render all visualizations
             this.renderTrialsTable(trialsData);
@@ -500,18 +502,27 @@ class OptimizerApp {
     }
 
     renderColorCodedTable(data) {
-        const container = document.getElementById('color-coded-table');
-        if (!container) return;
+        try {
+            console.log('Rendering color-coded table...');
+            const container = document.getElementById('color-coded-table');
+            if (!container) {
+                console.error('color-coded-table container not found');
+                return;
+            }
 
-        const thead = container.querySelector('thead tr');
-        const tbody = container.querySelector('tbody');
-        if (!thead || !tbody) return;
+            const thead = container.querySelector('thead tr');
+            const tbody = container.querySelector('tbody');
+            if (!thead || !tbody) {
+                console.error('Table thead or tbody not found');
+                return;
+            }
 
-        tbody.innerHTML = '';
-        thead.innerHTML = '<th>Trial</th>'; // Reset and add trial column
+            tbody.innerHTML = '';
+            thead.innerHTML = '<th>Trial</th>'; // Reset and add trial column
 
-        const valueColumns = data.metric_columns || [];
-        const trials = data.trials || [];
+            const valueColumns = data.metric_columns || [];
+            const trials = data.trials || [];
+            console.log('Color-coded table - trials count:', trials.length);
 
         // Add header columns for each metric
         valueColumns.forEach(col => {
@@ -551,9 +562,10 @@ class OptimizerApp {
         trials.slice(0, 50).forEach((trial, idx) => {
             const row = tbody.insertRow();
 
-            // Trial number
+            // Trial number - handle 0 explicitly
             const trialCell = row.insertCell();
-            trialCell.textContent = trial.number ?? idx;
+            const trialNumber = (trial.number !== null && trial.number !== undefined) ? trial.number : idx;
+            trialCell.textContent = trialNumber;
             trialCell.style.fontWeight = '600';
 
             // Metric values with color coding
@@ -570,9 +582,15 @@ class OptimizerApp {
                 }
             });
         });
+        console.log('Color-coded table rendered successfully');
+        } catch (error) {
+            console.error('Error rendering color-coded table:', error);
+        }
     }
 
     renderSpiderPlot(data) {
+        try {
+            console.log('Rendering spider plot...');
         if (!data.trials || data.trials.length === 0) return;
 
         const valueColumns = data.metric_columns || [];
@@ -664,9 +682,15 @@ class OptimizerApp {
         };
 
         Plotly.newPlot('spider-viz', traces, layout, { responsive: true });
+        console.log('Spider plot rendered successfully');
+        } catch (error) {
+            console.error('Error rendering spider plot:', error);
+        }
     }
 
     renderHistograms(data) {
+        try {
+            console.log('Rendering histograms...');
         if (!data.trials || data.trials.length === 0) return;
 
         const valueColumns = data.metric_columns || [];
@@ -714,9 +738,15 @@ class OptimizerApp {
 
             Plotly.newPlot(histDiv.id, [trace], layout, { responsive: true });
         });
+        console.log('Histograms rendered successfully');
+        } catch (error) {
+            console.error('Error rendering histograms:', error);
+        }
     }
 
     renderConvergencePlot(data) {
+        try {
+            console.log('Rendering convergence plot...');
         if (!data.trials || data.trials.length === 0) return;
 
         const valueColumns = data.metric_columns || [];
@@ -724,7 +754,7 @@ class OptimizerApp {
 
         // Create traces for each metric showing how it changes over trials
         const traces = valueColumns.map((col, idx) => {
-            const xValues = trials.map(t => t.number ?? 0);
+            const xValues = trials.map(t => (t.number !== null && t.number !== undefined) ? t.number : 0);
             const yValues = trials.map(t => t[col] ?? null);
 
             const colors = ['#76b900', '#00a3e0', '#ff9800', '#f44336', '#9c27b0'];
@@ -767,9 +797,15 @@ class OptimizerApp {
         };
 
         Plotly.newPlot('convergence-viz', traces, layout, { responsive: true });
+        console.log('Convergence plot rendered successfully');
+        } catch (error) {
+            console.error('Error rendering convergence plot:', error);
+        }
     }
 
     renderCorrelationHeatmap(data) {
+        try {
+            console.log('Rendering correlation heatmap...');
         if (!data.trials || data.trials.length === 0) return;
 
         const paramColumns = data.param_columns || [];
@@ -852,6 +888,10 @@ class OptimizerApp {
         };
 
         Plotly.newPlot('correlation-viz', [trace], layout, { responsive: true });
+        console.log('Correlation heatmap rendered successfully');
+        } catch (error) {
+            console.error('Error rendering correlation heatmap:', error);
+        }
     }
 
     calculateCorrelation(x, y) {
@@ -878,7 +918,9 @@ class OptimizerApp {
 
         data.trials.slice(0, 50).forEach(trial => {
             const row = tbody.insertRow();
-            row.insertCell(0).textContent = trial.number ?? '-';
+            // Handle trial 0 explicitly
+            const trialNumber = (trial.number !== null && trial.number !== undefined) ? trial.number : '-';
+            row.insertCell(0).textContent = trialNumber;
             row.insertCell(1).textContent = trial.state || '-';
 
             // Show value columns
