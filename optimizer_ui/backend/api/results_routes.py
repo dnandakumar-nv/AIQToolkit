@@ -341,23 +341,23 @@ async def get_prompt_comparisons(run_id: str) -> dict[str, Any]:
                 "message": "No prompt optimization results found",
             }
 
-        # Get the final optimized prompts (preferably from optimized_prompts.json)
+        # CRITICAL: Get the FINAL optimized prompts from optimized_prompts.json
+        # This is the final output after all GA generations, NOT an intermediate gen{n} file
         final_prompts_file = output_dir / "optimized_prompts.json"
         if not final_prompts_file.exists():
-            # Use the last generation if final doesn't exist
+            # Fallback: Use the last generation file if final doesn't exist yet
             final_prompts_file = prompt_files[-1]
-            logger.info(f"Using last generation file: {final_prompts_file}")
+            logger.warning(f"optimized_prompts.json not found, using last generation file: {final_prompts_file}")
         else:
-            logger.info(f"Using final prompts file: {final_prompts_file}")
+            logger.info(f"Using FINAL optimized prompts file: {final_prompts_file}")
 
-        # Load final prompts
+        # Load FINAL optimized prompts (AFTER optimization)
         with final_prompts_file.open() as f:
             optimized_prompts = json.load(f)
-            logger.info(f"Loaded {len(optimized_prompts)} optimized prompts")
+            logger.info(f"Loaded {len(optimized_prompts)} FINAL optimized prompts from {final_prompts_file.name}")
 
-        # Get original prompts from gen1 (first generation typically contains best of initial population)
-        # But we want the TRUE originals from the config, not gen1
-        # So let's get them from the config file directly
+        # Get ORIGINAL prompts from the config file (BEFORE optimization)
+        # These are the true originals defined in the config, not from gen1 or any generation file
         original_prompts = {}
         try:
             from nat.runtime.loader import load_config
@@ -384,7 +384,8 @@ async def get_prompt_comparisons(run_id: str) -> dict[str, Any]:
                     original_prompts = gen1_data
                     logger.info(f"Using gen1 as original prompts (fallback)")
 
-        # Format for frontend
+        # Format comparisons for frontend
+        # COMPARISON: ORIGINAL (from config) vs FINAL (from optimized_prompts.json)
         # Structure: {param_name: [prompt_text, purpose]}
         comparisons = []
         for param_name, prompt_data in optimized_prompts.items():
@@ -395,7 +396,7 @@ async def get_prompt_comparisons(run_id: str) -> dict[str, Any]:
                 logger.warning(f"Unexpected format for {param_name}: {type(prompt_data)}")
                 continue
 
-            # Get original prompt
+            # Get ORIGINAL prompt from config (BEFORE optimization)
             if param_name in original_prompts:
                 orig_data = original_prompts[param_name]
                 if isinstance(orig_data, (list, tuple)) and len(orig_data) >= 2:
@@ -403,13 +404,15 @@ async def get_prompt_comparisons(run_id: str) -> dict[str, Any]:
                 else:
                     original_text = optimized_text  # Fallback
             else:
+                logger.warning(f"Original prompt not found for {param_name}, using optimized as fallback")
                 original_text = optimized_text  # Fallback if not found
 
+            # Create comparison: BEFORE (original from config) → AFTER (final from optimized_prompts.json)
             comparisons.append({
                 "name": param_name,
                 "purpose": purpose,
-                "before": original_text,
-                "after": optimized_text,
+                "before": original_text,  # Original from config
+                "after": optimized_text,  # Final from optimized_prompts.json
             })
 
         logger.info(f"Prepared {len(comparisons)} prompt comparisons")

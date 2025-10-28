@@ -382,14 +382,42 @@ class OptimizerApp {
             document.getElementById('stat-current').textContent = data.current_trial;
         }
 
-        // Update prompt optimization stats
-        if (data.prompt_enabled) {
+        // Determine current phase and show appropriate stats
+        const numericEnabled = data.numeric_enabled;
+        const promptEnabled = data.prompt_enabled;
+
+        // Show prompt stats section if either phase uses it
+        if (numericEnabled || promptEnabled) {
             document.getElementById('prompt-stats').style.display = 'grid';
-            if (data.total_generations) {
+
+            // Update total generations (only if prompt optimization is enabled)
+            if (promptEnabled && data.total_generations) {
                 document.getElementById('stat-generations').textContent = data.total_generations;
             }
+
+            // Update current generation if available
             if (data.current_generation !== undefined && data.current_generation !== null) {
                 document.getElementById('stat-current-gen').textContent = data.current_generation;
+            }
+
+            // Determine and update current phase indicator
+            const phaseElement = document.getElementById('stat-phase');
+            if (data.current_generation !== undefined && data.current_generation !== null && data.current_generation > 0) {
+                // Prompt phase is running
+                phaseElement.textContent = 'Prompts';
+                phaseElement.style.color = 'var(--secondary-color)';
+            } else if (data.current_trial !== undefined && data.current_trial !== null && data.current_trial > 0) {
+                // Numeric phase is running
+                phaseElement.textContent = 'Parameters';
+                phaseElement.style.color = 'var(--primary-color)';
+            } else if (numericEnabled && !data.current_generation) {
+                // Starting with numeric phase
+                phaseElement.textContent = 'Parameters';
+                phaseElement.style.color = 'var(--primary-color)';
+            } else if (promptEnabled) {
+                // Prompt-only or transitioning
+                phaseElement.textContent = 'Prompts';
+                phaseElement.style.color = 'var(--secondary-color)';
             }
         }
 
