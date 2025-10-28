@@ -553,7 +553,7 @@ class OptimizerApp {
 
             // Trial number
             const trialCell = row.insertCell();
-            trialCell.textContent = trial.number || idx;
+            trialCell.textContent = trial.number ?? idx;
             trialCell.style.fontWeight = '600';
 
             // Metric values with color coding
@@ -724,8 +724,8 @@ class OptimizerApp {
 
         // Create traces for each metric showing how it changes over trials
         const traces = valueColumns.map((col, idx) => {
-            const xValues = trials.map(t => t.number || 0);
-            const yValues = trials.map(t => t[col] || null);
+            const xValues = trials.map(t => t.number ?? 0);
+            const yValues = trials.map(t => t[col] ?? null);
 
             const colors = ['#76b900', '#00a3e0', '#ff9800', '#f44336', '#9c27b0'];
 
@@ -878,7 +878,7 @@ class OptimizerApp {
 
         data.trials.slice(0, 50).forEach(trial => {
             const row = tbody.insertRow();
-            row.insertCell(0).textContent = trial.number || '-';
+            row.insertCell(0).textContent = trial.number ?? '-';
             row.insertCell(1).textContent = trial.state || '-';
 
             // Show value columns
