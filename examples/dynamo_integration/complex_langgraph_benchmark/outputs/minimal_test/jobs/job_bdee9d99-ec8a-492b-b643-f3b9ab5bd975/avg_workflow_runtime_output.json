@@ -1,0 +1,29 @@
+{
+  "average_score": 132.09,
+  "eval_output_items": [
+    {
+      "id": "incident_001",
+      "score": 142.992,
+      "reasoning": {
+        "steps": 28
+      },
+      "error": null
+    },
+    {
+      "id": "incident_002",
+      "score": 134.8603,
+      "reasoning": {
+        "steps": 28
+      },
+      "error": null
+    },
+    {
+      "id": "incident_003",
+      "score": 118.4287,
+      "reasoning": {
+        "steps": 28
+      },
+      "error": null
+    }
+  ]
+}

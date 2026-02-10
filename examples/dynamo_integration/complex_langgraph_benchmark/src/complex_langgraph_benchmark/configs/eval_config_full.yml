@@ -1,0 +1,100 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# <!-- path-check-skip-file -->
+
+# =============================================================================
+# FULL EVALUATION - 100 SCENARIOS
+# =============================================================================
+# Purpose: Full benchmark evaluation with 100 IT incident scenarios for
+#          stress-testing Dynamo inference optimizations (KV cache prefix
+#          routing, Thompson Sampling, worker stickiness)
+#
+# Expected: 9-18 LLM calls per scenario (12 nodes, 3 parallel, 2 cycles)
+# Expected runtime: ~30-60 minutes depending on Dynamo configuration
+#
+# Usage:
+#   nat eval run --config_file configs/eval_config_full.yml
+# =============================================================================
+
+function_groups:
+  incident_tools:
+    _type: incident_tools_group
+    decision_only: true
+
+llms:
+  dynamo_llm:
+    _type: dynamo
+    model_name: llama_70b
+    base_url: http://localhost:8099/v1
+    api_key: dummy
+    temperature: 0.0
+    max_tokens: 2048
+    prefix_template: "complex-bench-{uuid}"
+    # Static fallback values (used when prediction trie lookup fails)
+    prefix_total_requests: 12
+    prefix_osl: MEDIUM
+    prefix_iat: LOW
+    # Prediction trie for dynamic per-call header injection
+    # After first run, update path with actual job ID from output directory:
+    #   outputs/full_eval/jobs/<job_id>/prediction_trie.json
+    prediction_trie_path: ./examples/dynamo_integration/complex_langgraph_benchmark/outputs/minimal_test/jobs/job_bdee9d99-ec8a-492b-b643-f3b9ab5bd975/prediction_trie.json
+
+
+workflow:
+  _type: complex_langgraph_agent
+  llm_name: dynamo_llm
+  decision_only: true
+
+eval:
+  general:
+    max_concurrency: 4
+
+    output:
+      dir: ./examples/dynamo_integration/complex_langgraph_benchmark/outputs/full_eval/
+      cleanup: false
+      job_management:
+        append_job_id_to_output_dir: true
+
+    dataset:
+      _type: json
+      file_path: ./examples/dynamo_integration/complex_langgraph_benchmark/data/complex_langgraph_benchmark.json
+      structure:
+        disable: true
+
+    profiler:
+      compute_llm_metrics: true
+      token_uniqueness_forecast: true
+      workflow_runtime_forecast: true
+      csv_exclude_io_text: true
+      prompt_caching_prefixes:
+        enable: true
+        min_frequency: 0.1
+      bottleneck_analysis:
+        enable_nested_stack: true
+      concurrency_spike_analysis:
+        enable: true
+        spike_threshold: 5
+      prediction_trie:
+        enable: true
+
+  evaluators:
+    avg_llm_latency:
+      _type: avg_llm_latency
+    avg_workflow_runtime:
+      _type: avg_workflow_runtime
+    avg_num_llm_calls:
+      _type: avg_num_llm_calls
+    avg_tokens_per_llm_end:
+      _type: avg_tokens_per_llm_end

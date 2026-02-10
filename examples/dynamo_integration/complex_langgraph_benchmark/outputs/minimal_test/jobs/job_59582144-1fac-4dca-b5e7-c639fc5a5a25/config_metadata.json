@@ -1,0 +1,17 @@
+{
+  "config_file": "examples/dynamo_integration/complex_langgraph_benchmark/configs/eval_config_minimal.yml",
+  "config_file_type": "Path",
+  "overrides": [],
+  "dataset": null,
+  "result_json_path": "$",
+  "skip_workflow": false,
+  "skip_completed_entries": false,
+  "reps": 1,
+  "endpoint": null,
+  "endpoint_timeout": 300,
+  "adjust_dataset_size": false,
+  "num_passes": 0,
+  "export_timeout": 60.0,
+  "user_id": "nat_eval_user_id",
+  "timestamp": "2026-02-10T01:23:57.970061+00:00"
+}

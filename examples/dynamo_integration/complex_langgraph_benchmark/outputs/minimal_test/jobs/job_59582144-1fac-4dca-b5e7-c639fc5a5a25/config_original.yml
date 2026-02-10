@@ -1,0 +1,86 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# <!-- path-check-skip-file -->
+
+# =============================================================================
+# MINIMAL TEST - 3 SCENARIOS (Smoke Test)
+# =============================================================================
+# Purpose: Quick validation of agent execution with 3 representative incidents
+# Expected runtime: ~2-3 minutes
+#
+# Usage:
+#   nat eval run --config_file configs/eval_config_minimal.yml
+# =============================================================================
+
+function_groups:
+  incident_tools:
+    _type: incident_tools_group
+    decision_only: true
+
+llms:
+  dynamo_llm:
+    _type: dynamo
+    model_name: llama_70b
+    base_url: http://localhost:8099/v1
+    api_key: dummy
+    temperature: 0.0
+    max_tokens: 2048
+    prefix_template: "complex-bench-{uuid}"
+    prefix_total_requests: 12
+    prefix_osl: MEDIUM
+    prefix_iat: LOW
+
+  eval_llm:
+    _type: dynamo
+    model_name: llama_70b
+    base_url: http://localhost:8099/v1
+    api_key: dummy
+    temperature: 0.0
+    max_tokens: 1024
+
+workflow:
+  _type: complex_langgraph_agent
+  llm_name: dynamo_llm
+  decision_only: true
+
+eval:
+  general:
+    max_concurrency: 3
+
+    output:
+      dir: ./examples/dynamo_integration/complex_langgraph_benchmark/outputs/minimal_test/
+      cleanup: false
+      job_management:
+        append_job_id_to_output_dir: true
+
+    dataset:
+      _type: json
+      file_path: ./examples/dynamo_integration/complex_langgraph_benchmark/data/complex_langgraph_benchmark_mini.json
+      structure:
+        disable: true
+
+    profiler:
+      compute_llm_metrics: true
+      csv_exclude_io_text: true
+      bottleneck_analysis:
+        enable_nested_stack: true
+
+  evaluators:
+    tool_selection_quality:
+      _type: tsq_evaluator
+      llm_name: eval_llm
+      strict_mode: false
+      tool_weight: 0.6
+      parameter_weight: 0.4

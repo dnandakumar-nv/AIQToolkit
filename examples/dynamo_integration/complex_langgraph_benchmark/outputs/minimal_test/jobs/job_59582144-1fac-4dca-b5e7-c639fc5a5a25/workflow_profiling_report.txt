@@ -1,0 +1,50 @@
+
+
+
+=== Multi-Example Nested Call Profiling Report ===
+Total calls (across all examples): 33
+
+-- Concurrency Distribution (all examples) --
+p50=6.0, p90=12.0, p95=12.0, p99=12.0
+
+-- Top 5 Calls by Bottleneck Score (subtree_time) --
+1) UUID=061cc9d3-c05d-436a-8fc8-8c6de99993cc, FUNCTION '<workflow>', dur=86.49, self_time=66.71, subtree_time=153.18, concurrency=6.0, score=153.18
+2) UUID=dfc0afa4-95a6-46e6-be26-2b04d9632c02, FUNCTION '<workflow>', dur=80.47, self_time=59.15, subtree_time=140.10, concurrency=6.0, score=140.10
+3) UUID=20271724-d51c-4a32-a4b1-531baddd24b2, FUNCTION '<workflow>', dur=97.88, self_time=0.01, subtree_time=97.88, concurrency=6.0, score=97.88
+4) UUID=019c4524-72b4-7be1-883b-2b5898afc4c7, LLM 'llama_70b', dur=16.14, self_time=0.00, subtree_time=82.84, concurrency=12.0, score=82.84
+5) UUID=019c4524-72b4-7be1-883b-2b64f6281afe, LLM 'llama_70b', dur=18.87, self_time=0.00, subtree_time=82.84, concurrency=12.0, score=82.84
+
+-- Full Tree(s) (All Examples) --
+- FUNCTION '<workflow>' (uuid=20271724-d51c-4a32-a4b1-531baddd24b2, start=1770686538.87, end=1770686636.76, dur=97.88)
+  - LLM 'llama_70b' (uuid=019c4524-647b-7491-bc92-603323519f57, start=1770686538.88, end=1770686541.56, dur=2.68)
+  - LLM 'llama_70b' (uuid=019c4524-6ef9-75b0-a44c-6970adb4f672, start=1770686541.56, end=1770686565.93, dur=24.37)
+    - LLM 'llama_70b' (uuid=019c4524-6ef9-75b0-a44c-69812b6a39f9, start=1770686541.56, end=1770686561.41, dur=19.85)
+      - LLM 'llama_70b' (uuid=019c4524-6ef9-75b0-a44c-6994d8870ddc, start=1770686541.56, end=1770686559.90, dur=18.34)
+  - LLM 'llama_70b' (uuid=019c4524-ce27-7680-a94e-122d4fb2b2bb, start=1770686565.93, end=1770686572.61, dur=6.68)
+  - LLM 'llama_70b' (uuid=019c4524-e841-7801-99d9-fd2532c8f880, start=1770686572.61, end=1770686598.13, dur=25.52)
+  - LLM 'llama_70b' (uuid=019c4525-4bf7-72a3-afdc-2de6465b9ffb, start=1770686598.14, end=1770686606.68, dur=8.54)
+  - LLM 'llama_70b' (uuid=019c4525-6d57-7b31-a966-c7212925c086, start=1770686606.68, end=1770686617.01, dur=10.34)
+  - LLM 'llama_70b' (uuid=019c4525-95b7-75c0-852b-76be76961bb9, start=1770686617.02, end=1770686628.09, dur=11.08)
+  - LLM 'llama_70b' (uuid=019c4525-c0fc-7bd0-b5a0-ab68cafe14a1, start=1770686628.09, end=1770686636.76, dur=8.66)
+- FUNCTION '<workflow>' (uuid=061cc9d3-c05d-436a-8fc8-8c6de99993cc, start=1770686538.87, end=1770686625.36, dur=86.49)
+  - LLM 'llama_70b' (uuid=019c4524-647d-7f92-9ca1-03a68ee96039, start=1770686538.88, end=1770686542.52, dur=3.64)
+  - LLM 'llama_70b' (uuid=019c4524-72b4-7be1-883b-2b5898afc4c7, start=1770686542.52, end=1770686558.66, dur=16.14)
+    - LLM 'llama_70b' (uuid=019c4524-72b4-7be1-883b-2b64f6281afe, start=1770686542.52, end=1770686561.39, dur=18.87)
+      - LLM 'llama_70b' (uuid=019c4524-72b4-7be1-883b-2b7f9e770b06, start=1770686542.52, end=1770686562.26, dur=19.74)
+      - LLM 'llama_70b' (uuid=019c4524-bfd3-7002-81d4-c1bec4fd9419, start=1770686562.26, end=1770686570.21, dur=7.95)
+      - LLM 'llama_70b' (uuid=019c4524-dee2-7701-ad10-ca0580e9a6e9, start=1770686570.21, end=1770686590.91, dur=20.70)
+      - LLM 'llama_70b' (uuid=019c4525-2fc1-7fb0-acbb-2749251d5a14, start=1770686590.91, end=1770686599.52, dur=8.61)
+      - LLM 'llama_70b' (uuid=019c4525-5161-7881-aaff-90985f22aea3, start=1770686599.52, end=1770686610.98, dur=11.46)
+      - LLM 'llama_70b' (uuid=019c4525-7e29-7853-884b-6c5354063e4d, start=1770686610.99, end=1770686616.59, dur=5.60)
+      - LLM 'llama_70b' (uuid=019c4525-940e-7140-ad8e-31c0ce1925af, start=1770686616.59, end=1770686625.36, dur=8.77)
+- FUNCTION '<workflow>' (uuid=dfc0afa4-95a6-46e6-be26-2b04d9632c02, start=1770686538.87, end=1770686619.34, dur=80.47)
+  - LLM 'llama_70b' (uuid=019c4524-647e-7bd3-89e9-fa415a6d8cc3, start=1770686538.88, end=1770686542.53, dur=3.66)
+  - LLM 'llama_70b' (uuid=019c4524-72c8-7380-8e1b-36d129a39aa2, start=1770686542.54, end=1770686560.20, dur=17.66)
+    - LLM 'llama_70b' (uuid=019c4524-72c8-7380-8e1b-36e203b10d02, start=1770686542.54, end=1770686559.70, dur=17.17)
+      - LLM 'llama_70b' (uuid=019c4524-72c8-7380-8e1b-36f45a507b51, start=1770686542.54, end=1770686562.65, dur=20.11)
+      - LLM 'llama_70b' (uuid=019c4524-c15b-7de1-ae7e-54c9638eaef3, start=1770686562.65, end=1770686568.15, dur=5.50)
+      - LLM 'llama_70b' (uuid=019c4524-d6d5-7901-a50a-6319ba9c12cc, start=1770686568.15, end=1770686583.60, dur=15.45)
+      - LLM 'llama_70b' (uuid=019c4525-1333-75c3-a76c-0a4459c6fb43, start=1770686583.60, end=1770686593.71, dur=10.11)
+      - LLM 'llama_70b' (uuid=019c4525-3ab3-7931-91a4-59e5fa0eb8a2, start=1770686593.72, end=1770686602.33, dur=8.61)
+      - LLM 'llama_70b' (uuid=019c4525-5c57-7343-9572-b7f5e3dda8a6, start=1770686602.33, end=1770686610.71, dur=8.38)
+      - LLM 'llama_70b' (uuid=019c4525-7d18-7470-a9cf-9470cf513c58, start=1770686610.71, end=1770686619.34, dur=8.63)

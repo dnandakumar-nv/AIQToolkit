@@ -1,0 +1,234 @@
+general:
+  use_uvloop: null
+  telemetry:
+    logging: {}
+    tracing: {}
+  per_user_workflow_timeout: PT30M
+  per_user_workflow_cleanup_interval: PT5M
+  enable_per_user_monitoring: false
+  front_end:
+    type: fastapi
+    root_path: ''
+    host: localhost
+    port: 8000
+    reload: false
+    workers: 1
+    scheduler_address: null
+    db_url: null
+    max_running_async_jobs: 10
+    dask_workers: processes
+    dask_log_level: WARNING
+    dask_worker_memory_limit: '0'
+    dask_threads_per_worker: 1
+    step_adaptor:
+      mode: default
+      custom_event_types: []
+    workflow:
+      method: POST
+      description: 'Executes the default NAT workflow from the loaded configuration '
+      path: /generate
+      websocket_path: /websocket
+      openai_api_path: /chat
+      openai_api_v1_path: /v1/chat/completions
+    evaluate:
+      method: POST
+      description: Evaluates the performance and accuracy of the workflow on a dataset
+      path: /evaluate
+      websocket_path: null
+      openai_api_path: null
+      openai_api_v1_path: null
+    evaluate_item:
+      method: POST
+      description: Evaluate a single item with a specified evaluator
+      path: /evaluate/item
+      websocket_path: null
+      openai_api_path: null
+      openai_api_v1_path: null
+    oauth2_callback_path: /auth/redirect
+    endpoints: []
+    cors:
+      allow_origins: null
+      allow_origin_regex: null
+      allow_methods:
+      - GET
+      allow_headers: []
+      allow_credentials: false
+      expose_headers: []
+      max_age: 600
+    use_gunicorn: false
+    runner_class: null
+    object_store: null
+functions: {}
+function_groups:
+  incident_tools:
+    type: incident_tools_group
+    include: []
+    exclude: []
+    middleware: []
+    tools_json_path: data/incident_tools.json
+    decision_only: true
+middleware: {}
+llms:
+  dynamo_llm:
+    thinking: null
+    type: dynamo
+    api_type: chat_completion
+    api_key: dummy
+    base_url: http://localhost:8099/v1
+    model_name: llama_70b
+    seed: null
+    max_retries: 10
+    temperature: 0.0
+    top_p: null
+    prefix_template: complex-bench-{uuid}
+    prefix_total_requests: 12
+    prefix_osl: 512
+    prefix_iat: 50
+    request_timeout: 600.0
+    prefix_use_raw_values: true
+    prediction_trie_path: null
+    disable_headers: true
+    max_tokens: 2048
+embedders: {}
+memory: {}
+object_stores: {}
+optimizer:
+  output_path: null
+  eval_metrics: null
+  reps_per_param_set: 3
+  target: null
+  multi_objective_combination_mode: harmonic
+  numeric:
+    enabled: true
+    n_trials: 20
+    sampler: null
+  prompt:
+    enabled: false
+    prompt_population_init_function: null
+    prompt_recombination_function: null
+    ga_population_size: 24
+    ga_generations: 15
+    ga_offspring_size: null
+    ga_crossover_rate: 0.8
+    ga_mutation_rate: 0.3
+    ga_elitism: 2
+    ga_selection_method: tournament
+    ga_tournament_size: 3
+    ga_parallel_evaluations: 8
+    ga_diversity_lambda: 0.0
+    oracle_feedback_mode: never
+    oracle_feedback_worst_n: 5
+    oracle_feedback_max_chars: 4000
+    oracle_feedback_fitness_threshold: 0.3
+    oracle_feedback_stagnation_generations: 3
+    oracle_feedback_fitness_variance_threshold: 0.01
+    oracle_feedback_diversity_threshold: 0.5
+retrievers: {}
+ttc_strategies: {}
+workflow:
+  type: complex_langgraph_agent
+  name: null
+  middleware: []
+  llm_name: dynamo_llm
+  decision_only: true
+  max_quality_retries: 2
+  max_synthesis_retries: 2
+  quality_threshold: 0.7
+authentication: {}
+eval:
+  general:
+    max_concurrency: 3
+    workflow_alias: null
+    output_dir: examples/dynamo_integration/complex_langgraph_benchmark/outputs/minimal_test/jobs/job_747a4f2b-a14e-4633-ad19-12af23f78cae
+    output:
+      dir: examples/dynamo_integration/complex_langgraph_benchmark/outputs/minimal_test/jobs/job_747a4f2b-a14e-4633-ad19-12af23f78cae
+      remote_dir: null
+      custom_pre_eval_process_function: null
+      custom_scripts: {}
+      s3: null
+      cleanup: false
+      job_management:
+        append_job_id_to_output_dir: true
+        max_jobs: 0
+        eviction_policy: time_created
+      workflow_output_step_filter: null
+    dataset:
+      type: json
+      id_key: id
+      structure:
+        disable: true
+        question_key: question
+        answer_key: answer
+        generated_answer_key: generated_answer
+        trajectory_key: intermediate_steps
+        expected_trajectory_key: expected_intermediate_steps
+      filter:
+        allowlist: null
+        denylist: null
+      s3: null
+      remote_file_path: null
+      file_path: ./examples/dynamo_integration/complex_langgraph_benchmark/data/complex_langgraph_benchmark_mini.json
+    profiler:
+      base_metrics: false
+      token_usage_forecast: false
+      token_uniqueness_forecast: false
+      workflow_runtime_forecast: false
+      compute_llm_metrics: true
+      csv_exclude_io_text: true
+      prompt_caching_prefixes:
+        enable: false
+        min_frequency: 0.5
+      bottleneck_analysis:
+        enable_simple_stack: false
+        enable_nested_stack: true
+      concurrency_spike_analysis:
+        enable: false
+        spike_threshold: 1
+      prefix_span_analysis:
+        enable: false
+        min_support: 2.0
+        min_coverage: 0.0
+        max_text_len: 1000
+        top_k: 10
+        chain_with_common_prefixes: false
+      prediction_trie:
+        enable: false
+        output_filename: prediction_trie.json
+    validate_llm_endpoints: false
+    per_input_user_id: true
+  evaluators:
+    avg_llm_latency:
+      type: avg_llm_latency
+      max_concurrency: 8
+    avg_workflow_runtime:
+      type: avg_workflow_runtime
+      max_concurrency: 8
+    avg_num_llm_calls:
+      type: avg_num_llm_calls
+      max_concurrency: 8
+    avg_tokens_per_llm_end:
+      type: avg_tokens_per_llm_end
+      max_concurrency: 8
+trainers: {}
+trainer_adapters: {}
+trajectory_builders: {}
+finetuning:
+  enabled: false
+  trainer: null
+  trajectory_builder: null
+  trainer_adapter: null
+  reward_function: null
+  target_functions:
+  - <workflow>
+  target_model: null
+  curriculum_learning:
+    enabled: false
+    initial_percentile: 0.3
+    increment_percentile: 0.2
+    expansion_interval: 5
+    min_reward_diff: 0.1
+    sort_ascending: false
+    random_subsample: null
+  num_epochs: 1
+  output_dir: .tmp/nat/finetuning
+  run_configuration: null

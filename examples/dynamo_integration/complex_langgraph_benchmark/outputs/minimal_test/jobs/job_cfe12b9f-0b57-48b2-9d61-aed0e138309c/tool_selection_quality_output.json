@@ -1,0 +1,65 @@
+{
+  "average_score": 0.0,
+  "eval_output_items": [
+    {
+      "id": "incident_001",
+      "score": 0.0,
+      "reasoning": {
+        "tool_selection_accuracy": 0.0,
+        "parameter_usage_accuracy": 0.0,
+        "actual_tool_calls": 0,
+        "expected_tool_calls": 5,
+        "details": {
+          "actual_tools": [],
+          "expected_tools": [
+            "create_ticket",
+            "escalate_incident",
+            "notify_team",
+            "check_system_status",
+            "apply_mitigation"
+          ]
+        }
+      },
+      "error": null
+    },
+    {
+      "id": "incident_002",
+      "score": 0.0,
+      "reasoning": {
+        "tool_selection_accuracy": 0.0,
+        "parameter_usage_accuracy": 0.0,
+        "actual_tool_calls": 0,
+        "expected_tool_calls": 4,
+        "details": {
+          "actual_tools": [],
+          "expected_tools": [
+            "create_ticket",
+            "escalate_incident",
+            "notify_team",
+            "apply_mitigation"
+          ]
+        }
+      },
+      "error": null
+    },
+    {
+      "id": "incident_003",
+      "score": 0.0,
+      "reasoning": {
+        "tool_selection_accuracy": 0.0,
+        "parameter_usage_accuracy": 0.0,
+        "actual_tool_calls": 0,
+        "expected_tool_calls": 3,
+        "details": {
+          "actual_tools": [],
+          "expected_tools": [
+            "create_ticket",
+            "notify_team",
+            "schedule_followup"
+          ]
+        }
+      },
+      "error": null
+    }
+  ]
+}

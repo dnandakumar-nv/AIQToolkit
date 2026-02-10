@@ -1,0 +1,797 @@
+{
+  "nested_stack_analysis": {
+    "concurrency": {
+      "timeline_segments": [
+        [
+          1770686538.8732579,
+          1770686538.874367,
+          1
+        ],
+        [
+          1770686538.874367,
+          1770686538.874698,
+          2
+        ],
+        [
+          1770686538.874698,
+          1770686538.875485,
+          3
+        ],
+        [
+          1770686538.875485,
+          1770686538.877974,
+          4
+        ],
+        [
+          1770686538.877974,
+          1770686538.878106,
+          5
+        ],
+        [
+          1770686538.878106,
+          1770686541.557288,
+          6
+        ],
+        [
+          1770686541.557288,
+          1770686541.5613089,
+          5
+        ],
+        [
+          1770686541.5613089,
+          1770686541.561541,
+          6
+        ],
+        [
+          1770686541.561541,
+          1770686541.561663,
+          7
+        ],
+        [
+          1770686541.561663,
+          1770686542.515033,
+          8
+        ],
+        [
+          1770686542.515033,
+          1770686542.5166872,
+          7
+        ],
+        [
+          1770686542.5166872,
+          1770686542.5168471,
+          8
+        ],
+        [
+          1770686542.5168471,
+          1770686542.516959,
+          9
+        ],
+        [
+          1770686542.516959,
+          1770686542.53475,
+          10
+        ],
+        [
+          1770686542.53475,
+          1770686542.536077,
+          9
+        ],
+        [
+          1770686542.536077,
+          1770686542.53625,
+          10
+        ],
+        [
+          1770686542.53625,
+          1770686542.536355,
+          11
+        ],
+        [
+          1770686542.536355,
+          1770686558.65746,
+          12
+        ],
+        [
+          1770686558.65746,
+          1770686559.704198,
+          11
+        ],
+        [
+          1770686559.704198,
+          1770686559.899692,
+          10
+        ],
+        [
+          1770686559.899692,
+          1770686560.195756,
+          9
+        ],
+        [
+          1770686560.195756,
+          1770686561.3866072,
+          8
+        ],
+        [
+          1770686561.3866072,
+          1770686561.411809,
+          7
+        ],
+        [
+          1770686561.411809,
+          1770686562.258223,
+          6
+        ],
+        [
+          1770686562.258223,
+          1770686562.260043,
+          5
+        ],
+        [
+          1770686562.260043,
+          1770686562.650309,
+          6
+        ],
+        [
+          1770686562.650309,
+          1770686562.651556,
+          5
+        ],
+        [
+          1770686562.651556,
+          1770686565.9263308,
+          6
+        ],
+        [
+          1770686565.9263308,
+          1770686565.927659,
+          5
+        ],
+        [
+          1770686565.927659,
+          1770686568.1477911,
+          6
+        ],
+        [
+          1770686568.1477911,
+          1770686568.1495008,
+          5
+        ],
+        [
+          1770686568.1495008,
+          1770686570.209288,
+          6
+        ],
+        [
+          1770686570.209288,
+          1770686570.21034,
+          5
+        ],
+        [
+          1770686570.21034,
+          1770686572.6080709,
+          6
+        ],
+        [
+          1770686572.6080709,
+          1770686572.609272,
+          5
+        ],
+        [
+          1770686572.609272,
+          1770686583.6022751,
+          6
+        ],
+        [
+          1770686583.6022751,
+          1770686583.603372,
+          5
+        ],
+        [
+          1770686583.603372,
+          1770686590.91331,
+          6
+        ],
+        [
+          1770686590.91331,
+          1770686590.913928,
+          5
+        ],
+        [
+          1770686590.913928,
+          1770686593.7140648,
+          6
+        ],
+        [
+          1770686593.7140648,
+          1770686593.7154062,
+          5
+        ],
+        [
+          1770686593.7154062,
+          1770686598.133781,
+          6
+        ],
+        [
+          1770686598.133781,
+          1770686598.135286,
+          5
+        ],
+        [
+          1770686598.135286,
+          1770686599.520278,
+          6
+        ],
+        [
+          1770686599.520278,
+          1770686599.521576,
+          5
+        ],
+        [
+          1770686599.521576,
+          1770686602.326475,
+          6
+        ],
+        [
+          1770686602.326475,
+          1770686602.3276181,
+          5
+        ],
+        [
+          1770686602.3276181,
+          1770686606.678005,
+          6
+        ],
+        [
+          1770686606.678005,
+          1770686606.6794481,
+          5
+        ],
+        [
+          1770686606.6794481,
+          1770686610.71225,
+          6
+        ],
+        [
+          1770686610.71225,
+          1770686610.713034,
+          5
+        ],
+        [
+          1770686610.713034,
+          1770686610.984294,
+          6
+        ],
+        [
+          1770686610.984294,
+          1770686610.985267,
+          5
+        ],
+        [
+          1770686610.985267,
+          1770686616.5899022,
+          6
+        ],
+        [
+          1770686616.5899022,
+          1770686616.5907211,
+          5
+        ],
+        [
+          1770686616.5907211,
+          1770686617.014579,
+          6
+        ],
+        [
+          1770686617.014579,
+          1770686617.015295,
+          5
+        ],
+        [
+          1770686617.015295,
+          1770686619.340173,
+          6
+        ],
+        [
+          1770686619.340173,
+          1770686619.3414662,
+          5
+        ],
+        [
+          1770686619.3414662,
+          1770686625.361048,
+          4
+        ],
+        [
+          1770686625.361048,
+          1770686625.361824,
+          3
+        ],
+        [
+          1770686625.361824,
+          1770686628.091539,
+          2
+        ],
+        [
+          1770686628.091539,
+          1770686628.09306,
+          1
+        ],
+        [
+          1770686628.09306,
+          1770686636.755779,
+          2
+        ],
+        [
+          1770686636.755779,
+          1770686636.7567549,
+          1
+        ]
+      ],
+      "p50": 6.0,
+      "p90": 12.0,
+      "p95": 12.0,
+      "p99": 12.0
+    },
+    "node_metrics": {
+      "20271724-d51c-4a32-a4b1-531baddd24b2": {
+        "uuid": "20271724-d51c-4a32-a4b1-531baddd24b2",
+        "operation_type": "FUNCTION",
+        "operation_name": "<workflow>",
+        "start_time": 1770686538.8732579,
+        "end_time": 1770686636.7567549,
+        "duration": 97.8834969997406,
+        "self_time": 0.014938592910766602,
+        "subtree_time": 97.8834969997406,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 97.8834969997406
+      },
+      "019c4524-647b-7491-bc92-603323519f57": {
+        "uuid": "019c4524-647b-7491-bc92-603323519f57",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686538.875485,
+        "end_time": 1770686541.557288,
+        "duration": 2.681802988052368,
+        "self_time": 2.681802988052368,
+        "subtree_time": 2.681802988052368,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 2.681802988052368
+      },
+      "019c4524-6ef9-75b0-a44c-6970adb4f672": {
+        "uuid": "019c4524-6ef9-75b0-a44c-6970adb4f672",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686541.5613089,
+        "end_time": 1770686565.9263308,
+        "duration": 24.36502194404602,
+        "self_time": 4.514754056930542,
+        "subtree_time": 24.36502194404602,
+        "concurrency_midpoint": 12.0,
+        "bottleneck_score": 24.36502194404602
+      },
+      "019c4524-6ef9-75b0-a44c-69812b6a39f9": {
+        "uuid": "019c4524-6ef9-75b0-a44c-69812b6a39f9",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686541.561541,
+        "end_time": 1770686561.411809,
+        "duration": 19.85026788711548,
+        "self_time": 1.5122387409210205,
+        "subtree_time": 19.85026788711548,
+        "concurrency_midpoint": 12.0,
+        "bottleneck_score": 19.85026788711548
+      },
+      "019c4524-6ef9-75b0-a44c-6994d8870ddc": {
+        "uuid": "019c4524-6ef9-75b0-a44c-6994d8870ddc",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686541.561663,
+        "end_time": 1770686559.899692,
+        "duration": 18.338029146194458,
+        "self_time": 18.338029146194458,
+        "subtree_time": 18.338029146194458,
+        "concurrency_midpoint": 12.0,
+        "bottleneck_score": 18.338029146194458
+      },
+      "019c4524-ce27-7680-a94e-122d4fb2b2bb": {
+        "uuid": "019c4524-ce27-7680-a94e-122d4fb2b2bb",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686565.927659,
+        "end_time": 1770686572.6080709,
+        "duration": 6.6804118156433105,
+        "self_time": 6.6804118156433105,
+        "subtree_time": 6.6804118156433105,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 6.6804118156433105
+      },
+      "019c4524-e841-7801-99d9-fd2532c8f880": {
+        "uuid": "019c4524-e841-7801-99d9-fd2532c8f880",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686572.609272,
+        "end_time": 1770686598.133781,
+        "duration": 25.524508953094482,
+        "self_time": 25.524508953094482,
+        "subtree_time": 25.524508953094482,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 25.524508953094482
+      },
+      "019c4525-4bf7-72a3-afdc-2de6465b9ffb": {
+        "uuid": "019c4525-4bf7-72a3-afdc-2de6465b9ffb",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686598.135286,
+        "end_time": 1770686606.678005,
+        "duration": 8.542718887329102,
+        "self_time": 8.542718887329102,
+        "subtree_time": 8.542718887329102,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 8.542718887329102
+      },
+      "019c4525-6d57-7b31-a966-c7212925c086": {
+        "uuid": "019c4525-6d57-7b31-a966-c7212925c086",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686606.6794481,
+        "end_time": 1770686617.014579,
+        "duration": 10.3351309299469,
+        "self_time": 10.3351309299469,
+        "subtree_time": 10.3351309299469,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 10.3351309299469
+      },
+      "019c4525-95b7-75c0-852b-76be76961bb9": {
+        "uuid": "019c4525-95b7-75c0-852b-76be76961bb9",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686617.015295,
+        "end_time": 1770686628.091539,
+        "duration": 11.076243877410889,
+        "self_time": 11.076243877410889,
+        "subtree_time": 11.076243877410889,
+        "concurrency_midpoint": 4.0,
+        "bottleneck_score": 11.076243877410889
+      },
+      "019c4525-c0fc-7bd0-b5a0-ab68cafe14a1": {
+        "uuid": "019c4525-c0fc-7bd0-b5a0-ab68cafe14a1",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686628.09306,
+        "end_time": 1770686636.755779,
+        "duration": 8.662719011306763,
+        "self_time": 8.662719011306763,
+        "subtree_time": 8.662719011306763,
+        "concurrency_midpoint": 2.0,
+        "bottleneck_score": 8.662719011306763
+      },
+      "061cc9d3-c05d-436a-8fc8-8c6de99993cc": {
+        "uuid": "061cc9d3-c05d-436a-8fc8-8c6de99993cc",
+        "operation_type": "FUNCTION",
+        "operation_name": "<workflow>",
+        "start_time": 1770686538.874367,
+        "end_time": 1770686625.361824,
+        "duration": 86.48745703697205,
+        "self_time": 66.70962524414062,
+        "subtree_time": 153.18446516990662,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 153.18446516990662
+      },
+      "019c4524-647d-7f92-9ca1-03a68ee96039": {
+        "uuid": "019c4524-647d-7f92-9ca1-03a68ee96039",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686538.877974,
+        "end_time": 1770686542.515033,
+        "duration": 3.637058973312378,
+        "self_time": 3.637058973312378,
+        "subtree_time": 3.637058973312378,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 3.637058973312378
+      },
+      "019c4524-72b4-7be1-883b-2b5898afc4c7": {
+        "uuid": "019c4524-72b4-7be1-883b-2b5898afc4c7",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686542.5166872,
+        "end_time": 1770686558.65746,
+        "duration": 16.140772819519043,
+        "self_time": 0.00015997886657714844,
+        "subtree_time": 82.83778095245361,
+        "concurrency_midpoint": 12.0,
+        "bottleneck_score": 82.83778095245361
+      },
+      "019c4524-72b4-7be1-883b-2b64f6281afe": {
+        "uuid": "019c4524-72b4-7be1-883b-2b64f6281afe",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686542.5168471,
+        "end_time": 1770686561.3866072,
+        "duration": 18.869760036468506,
+        "self_time": 0.00011181831359863281,
+        "subtree_time": 82.83762097358704,
+        "concurrency_midpoint": 12.0,
+        "bottleneck_score": 82.83762097358704
+      },
+      "019c4524-72b4-7be1-883b-2b7f9e770b06": {
+        "uuid": "019c4524-72b4-7be1-883b-2b7f9e770b06",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686542.516959,
+        "end_time": 1770686562.258223,
+        "duration": 19.74126410484314,
+        "self_time": 19.74126410484314,
+        "subtree_time": 19.74126410484314,
+        "concurrency_midpoint": 12.0,
+        "bottleneck_score": 19.74126410484314
+      },
+      "019c4524-bfd3-7002-81d4-c1bec4fd9419": {
+        "uuid": "019c4524-bfd3-7002-81d4-c1bec4fd9419",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686562.260043,
+        "end_time": 1770686570.209288,
+        "duration": 7.949244976043701,
+        "self_time": 7.949244976043701,
+        "subtree_time": 7.949244976043701,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 7.949244976043701
+      },
+      "019c4524-dee2-7701-ad10-ca0580e9a6e9": {
+        "uuid": "019c4524-dee2-7701-ad10-ca0580e9a6e9",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686570.21034,
+        "end_time": 1770686590.91331,
+        "duration": 20.702970027923584,
+        "self_time": 20.702970027923584,
+        "subtree_time": 20.702970027923584,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 20.702970027923584
+      },
+      "019c4525-2fc1-7fb0-acbb-2749251d5a14": {
+        "uuid": "019c4525-2fc1-7fb0-acbb-2749251d5a14",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686590.913928,
+        "end_time": 1770686599.520278,
+        "duration": 8.60634994506836,
+        "self_time": 8.60634994506836,
+        "subtree_time": 8.60634994506836,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 8.60634994506836
+      },
+      "019c4525-5161-7881-aaff-90985f22aea3": {
+        "uuid": "019c4525-5161-7881-aaff-90985f22aea3",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686599.521576,
+        "end_time": 1770686610.984294,
+        "duration": 11.46271800994873,
+        "self_time": 11.46271800994873,
+        "subtree_time": 11.46271800994873,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 11.46271800994873
+      },
+      "019c4525-7e29-7853-884b-6c5354063e4d": {
+        "uuid": "019c4525-7e29-7853-884b-6c5354063e4d",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686610.985267,
+        "end_time": 1770686616.5899022,
+        "duration": 5.604635238647461,
+        "self_time": 5.604635238647461,
+        "subtree_time": 5.604635238647461,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 5.604635238647461
+      },
+      "019c4525-940e-7140-ad8e-31c0ce1925af": {
+        "uuid": "019c4525-940e-7140-ad8e-31c0ce1925af",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686616.5907211,
+        "end_time": 1770686625.361048,
+        "duration": 8.770326852798462,
+        "self_time": 8.770326852798462,
+        "subtree_time": 8.770326852798462,
+        "concurrency_midpoint": 4.0,
+        "bottleneck_score": 8.770326852798462
+      },
+      "dfc0afa4-95a6-46e6-be26-2b04d9632c02": {
+        "uuid": "dfc0afa4-95a6-46e6-be26-2b04d9632c02",
+        "operation_type": "FUNCTION",
+        "operation_name": "<workflow>",
+        "start_time": 1770686538.874698,
+        "end_time": 1770686619.3414662,
+        "duration": 80.46676826477051,
+        "self_time": 59.15044546127319,
+        "subtree_time": 140.0954213142395,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 140.0954213142395
+      },
+      "019c4524-647e-7bd3-89e9-fa415a6d8cc3": {
+        "uuid": "019c4524-647e-7bd3-89e9-fa415a6d8cc3",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686538.878106,
+        "end_time": 1770686542.53475,
+        "duration": 3.656643867492676,
+        "self_time": 3.656643867492676,
+        "subtree_time": 3.656643867492676,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 3.656643867492676
+      },
+      "019c4524-72c8-7380-8e1b-36d129a39aa2": {
+        "uuid": "019c4524-72c8-7380-8e1b-36d129a39aa2",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686542.536077,
+        "end_time": 1770686560.195756,
+        "duration": 17.65967893600464,
+        "self_time": 0.4917311668395996,
+        "subtree_time": 77.28833198547363,
+        "concurrency_midpoint": 12.0,
+        "bottleneck_score": 77.28833198547363
+      },
+      "019c4524-72c8-7380-8e1b-36e203b10d02": {
+        "uuid": "019c4524-72c8-7380-8e1b-36e203b10d02",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686542.53625,
+        "end_time": 1770686559.704198,
+        "duration": 17.16794776916504,
+        "self_time": 0.0001049041748046875,
+        "subtree_time": 76.79660081863403,
+        "concurrency_midpoint": 12.0,
+        "bottleneck_score": 76.79660081863403
+      },
+      "019c4524-72c8-7380-8e1b-36f45a507b51": {
+        "uuid": "019c4524-72c8-7380-8e1b-36f45a507b51",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686542.536355,
+        "end_time": 1770686562.650309,
+        "duration": 20.113954067230225,
+        "self_time": 20.113954067230225,
+        "subtree_time": 20.113954067230225,
+        "concurrency_midpoint": 12.0,
+        "bottleneck_score": 20.113954067230225
+      },
+      "019c4524-c15b-7de1-ae7e-54c9638eaef3": {
+        "uuid": "019c4524-c15b-7de1-ae7e-54c9638eaef3",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686562.651556,
+        "end_time": 1770686568.1477911,
+        "duration": 5.496235132217407,
+        "self_time": 5.496235132217407,
+        "subtree_time": 5.496235132217407,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 5.496235132217407
+      },
+      "019c4524-d6d5-7901-a50a-6319ba9c12cc": {
+        "uuid": "019c4524-d6d5-7901-a50a-6319ba9c12cc",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686568.1495008,
+        "end_time": 1770686583.6022751,
+        "duration": 15.452774286270142,
+        "self_time": 15.452774286270142,
+        "subtree_time": 15.452774286270142,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 15.452774286270142
+      },
+      "019c4525-1333-75c3-a76c-0a4459c6fb43": {
+        "uuid": "019c4525-1333-75c3-a76c-0a4459c6fb43",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686583.603372,
+        "end_time": 1770686593.7140648,
+        "duration": 10.110692739486694,
+        "self_time": 10.110692739486694,
+        "subtree_time": 10.110692739486694,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 10.110692739486694
+      },
+      "019c4525-3ab3-7931-91a4-59e5fa0eb8a2": {
+        "uuid": "019c4525-3ab3-7931-91a4-59e5fa0eb8a2",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686593.7154062,
+        "end_time": 1770686602.326475,
+        "duration": 8.611068725585938,
+        "self_time": 8.611068725585938,
+        "subtree_time": 8.611068725585938,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 8.611068725585938
+      },
+      "019c4525-5c57-7343-9572-b7f5e3dda8a6": {
+        "uuid": "019c4525-5c57-7343-9572-b7f5e3dda8a6",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686602.3276181,
+        "end_time": 1770686610.71225,
+        "duration": 8.384631872177124,
+        "self_time": 8.384631872177124,
+        "subtree_time": 8.384631872177124,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 8.384631872177124
+      },
+      "019c4525-7d18-7470-a9cf-9470cf513c58": {
+        "uuid": "019c4525-7d18-7470-a9cf-9470cf513c58",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686610.713034,
+        "end_time": 1770686619.340173,
+        "duration": 8.6271390914917,
+        "self_time": 8.6271390914917,
+        "subtree_time": 8.6271390914917,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 8.6271390914917
+      }
+    },
+    "top_bottlenecks": [
+      {
+        "uuid": "061cc9d3-c05d-436a-8fc8-8c6de99993cc",
+        "operation_type": "FUNCTION",
+        "operation_name": "<workflow>",
+        "start_time": 1770686538.874367,
+        "end_time": 1770686625.361824,
+        "duration": 86.48745703697205,
+        "self_time": 66.70962524414062,
+        "subtree_time": 153.18446516990662,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 153.18446516990662
+      },
+      {
+        "uuid": "dfc0afa4-95a6-46e6-be26-2b04d9632c02",
+        "operation_type": "FUNCTION",
+        "operation_name": "<workflow>",
+        "start_time": 1770686538.874698,
+        "end_time": 1770686619.3414662,
+        "duration": 80.46676826477051,
+        "self_time": 59.15044546127319,
+        "subtree_time": 140.0954213142395,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 140.0954213142395
+      },
+      {
+        "uuid": "20271724-d51c-4a32-a4b1-531baddd24b2",
+        "operation_type": "FUNCTION",
+        "operation_name": "<workflow>",
+        "start_time": 1770686538.8732579,
+        "end_time": 1770686636.7567549,
+        "duration": 97.8834969997406,
+        "self_time": 0.014938592910766602,
+        "subtree_time": 97.8834969997406,
+        "concurrency_midpoint": 6.0,
+        "bottleneck_score": 97.8834969997406
+      },
+      {
+        "uuid": "019c4524-72b4-7be1-883b-2b5898afc4c7",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686542.5166872,
+        "end_time": 1770686558.65746,
+        "duration": 16.140772819519043,
+        "self_time": 0.00015997886657714844,
+        "subtree_time": 82.83778095245361,
+        "concurrency_midpoint": 12.0,
+        "bottleneck_score": 82.83778095245361
+      },
+      {
+        "uuid": "019c4524-72b4-7be1-883b-2b64f6281afe",
+        "operation_type": "LLM",
+        "operation_name": "llama_70b",
+        "start_time": 1770686542.5168471,
+        "end_time": 1770686561.3866072,
+        "duration": 18.869760036468506,
+        "self_time": 0.00011181831359863281,
+        "subtree_time": 82.83762097358704,
+        "concurrency_midpoint": 12.0,
+        "bottleneck_score": 82.83762097358704
+      }
+    ]
+  }
+}
