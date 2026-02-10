@@ -174,7 +174,7 @@ def create_node_functions(llm, config):
     # =========================================================================
     # Node 7: assess_quality — LLM call: score quality 0-1
     # =========================================================================
-    @latency_sensitive(LatencySensitivity.MEDIUM)
+    @latency_sensitive(LatencySensitivity.LOW)
     async def assess_quality(state: IncidentState) -> dict:
         """Assess the quality of aggregated findings using LLM."""
         quality_attempts = state.get("quality_attempts", 0)
@@ -244,7 +244,7 @@ def create_node_functions(llm, config):
     # =========================================================================
     # Node 9: critique_report — LLM call: review draft
     # =========================================================================
-    @latency_sensitive(LatencySensitivity.MEDIUM)
+    @latency_sensitive(LatencySensitivity.LOW)
     async def critique_report(state: IncidentState) -> dict:
         """Critique the draft report and decide whether to accept or revise."""
         prompt_text = prompts.CRITIQUE_REPORT.format(
