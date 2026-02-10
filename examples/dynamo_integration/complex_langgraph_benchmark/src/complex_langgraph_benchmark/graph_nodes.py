@@ -25,6 +25,9 @@ import uuid
 
 from langgraph.types import Send
 
+from nat.profiler.decorators.latency import LatencySensitivity
+from nat.profiler.decorators.latency import latency_sensitive
+
 from . import prompts
 from .graph_state import IncidentState
 
@@ -46,6 +49,7 @@ def create_node_functions(llm, config):
     # =========================================================================
     # Node 1: classify_incident — LLM call to classify severity + category
     # =========================================================================
+    @latency_sensitive(LatencySensitivity.HIGH)
     async def classify_incident(state: IncidentState) -> dict:
         """Classify the incident by severity and category using LLM."""
         query = state["query"]
@@ -95,6 +99,7 @@ def create_node_functions(llm, config):
     # Conditional edge: fan_out_router — Returns Send() to dispatch 3 parallel branches
     # Used as a conditional edge function (not a node) because it returns Send objects
     # =========================================================================
+    @latency_sensitive(LatencySensitivity.LOW)
     def fan_out_router(state: IncidentState) -> list[Send]:
         """Dispatch parallel analysis branches via Send()."""
         logger.info("Dispatching 3 parallel analysis branches for incident %s", state.get("incident_id", "unknown"))
@@ -115,6 +120,7 @@ def create_node_functions(llm, config):
     # =========================================================================
     # Node 3/4/5: analyze_branch — Single node handling all 3 analysis branches
     # =========================================================================
+    @latency_sensitive(LatencySensitivity.MEDIUM)
     async def analyze_branch(state: dict) -> dict:
         """Execute analysis for a specific branch (security/performance/infrastructure)."""
         branch = state["branch"]
@@ -149,6 +155,7 @@ def create_node_functions(llm, config):
     # =========================================================================
     # Node 6: aggregate_findings — Pure logic: merge parallel results
     # =========================================================================
+    @latency_sensitive(LatencySensitivity.LOW)
     async def aggregate_findings(state: IncidentState) -> dict:
         """Merge parallel analysis results into a single aggregated summary."""
         results = state.get("analysis_results", [])
@@ -167,6 +174,7 @@ def create_node_functions(llm, config):
     # =========================================================================
     # Node 7: assess_quality — LLM call: score quality 0-1
     # =========================================================================
+    @latency_sensitive(LatencySensitivity.MEDIUM)
     async def assess_quality(state: IncidentState) -> dict:
         """Assess the quality of aggregated findings using LLM."""
         quality_attempts = state.get("quality_attempts", 0)
@@ -208,6 +216,7 @@ def create_node_functions(llm, config):
     # =========================================================================
     # Node 8: synthesize_report — LLM call: draft report
     # =========================================================================
+    @latency_sensitive(LatencySensitivity.MEDIUM)
     async def synthesize_report(state: IncidentState) -> dict:
         """Synthesize a comprehensive incident report."""
         synthesis_attempts = state.get("synthesis_attempts", 0)
@@ -235,6 +244,7 @@ def create_node_functions(llm, config):
     # =========================================================================
     # Node 9: critique_report — LLM call: review draft
     # =========================================================================
+    @latency_sensitive(LatencySensitivity.MEDIUM)
     async def critique_report(state: IncidentState) -> dict:
         """Critique the draft report and decide whether to accept or revise."""
         prompt_text = prompts.CRITIQUE_REPORT.format(
@@ -254,6 +264,7 @@ def create_node_functions(llm, config):
     # =========================================================================
     # Node 10: extract_actions — LLM call + stub tool calls
     # =========================================================================
+    @latency_sensitive(LatencySensitivity.MEDIUM)
     async def extract_actions(state: IncidentState) -> dict:
         """Extract recommended actions and invoke stub tools."""
         prompt_text = prompts.EXTRACT_ACTIONS.format(
@@ -307,6 +318,7 @@ def create_node_functions(llm, config):
     # =========================================================================
     # Node 11: risk_assessment — LLM call: final risk evaluation
     # =========================================================================
+    @latency_sensitive(LatencySensitivity.MEDIUM)
     async def risk_assessment(state: IncidentState) -> dict:
         """Perform final risk assessment."""
         prompt_text = prompts.RISK_ASSESSMENT.format(
@@ -345,6 +357,7 @@ def create_node_functions(llm, config):
     # =========================================================================
     # Node 12: final_summary — LLM call: comprehensive response
     # =========================================================================
+    @latency_sensitive(LatencySensitivity.HIGH)
     async def final_summary(state: IncidentState) -> dict:
         """Generate the final comprehensive summary response."""
         prompt_text = prompts.FINAL_SUMMARY.format(
@@ -367,6 +380,7 @@ def create_node_functions(llm, config):
     # =========================================================================
     # Conditional edge functions
     # =========================================================================
+    @latency_sensitive(LatencySensitivity.LOW)
     def quality_gate(state: IncidentState) -> list[Send] | str:
         """Check quality score — retry analysis via Send() if below threshold, else proceed."""
         score = state.get("quality_score", 1.0)
@@ -393,6 +407,7 @@ def create_node_functions(llm, config):
         logger.info("Quality gate: score=%.2f, proceeding to synthesis", score)
         return "synthesize_report"
 
+    @latency_sensitive(LatencySensitivity.LOW)
     def critique_gate(state: IncidentState) -> str:
         """Check critique verdict — retry synthesis if revision needed and under retry limit."""
         feedback = state.get("critique_feedback", "")
