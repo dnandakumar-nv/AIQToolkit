@@ -162,6 +162,7 @@ class TestDynamoModelConfig:
             "request_timeout",
             "prediction_trie_path",
             "disable_headers",
+            "latency_log_path",
         })
 
         assert field_names == expected
@@ -763,6 +764,56 @@ class TestDynamoTransport:
         assert modified_request.headers[f"{prefix}-latency-sensitivity"] == "MEDIUM"
 
         # Cleanup
+        DynamoPrefixContext.clear()
+
+    async def test_transport_logs_request_latency(self, tmp_path):
+        """Test that _DynamoTransport logs per-request latency data to JSONL file."""
+        import json
+
+        import httpx
+
+        from nat.llm.dynamo_llm import _DynamoRequestLogger
+        from nat.llm.dynamo_llm import _DynamoTransport
+
+        log_file = tmp_path / "latency.jsonl"
+        request_logger = _DynamoRequestLogger(log_file)
+
+        mock_response = httpx.Response(200, json={"result": "ok"})
+        mock_transport = MagicMock()
+        mock_transport.handle_async_request = AsyncMock(return_value=mock_response)
+
+        transport = _DynamoTransport(
+            transport=mock_transport,
+            total_requests=10,
+            osl=512,
+            iat=250,
+            prediction_lookup=None,
+            disable_headers=True,
+            request_logger=request_logger,
+        )
+
+        DynamoPrefixContext.set("log-test-001")
+
+        request = httpx.Request("POST", "https://api.example.com/v1/chat/completions", json={"model": "test"})
+        await transport.handle_async_request(request)
+
+        # Read the log file
+        lines = log_file.read_text().strip().splitlines()
+        assert len(lines) == 1
+
+        entry = json.loads(lines[0])
+        assert entry["prefix_id"] == "log-test-001"
+        assert entry["status_code"] == 200
+        assert entry["osl"] == 512
+        assert entry["iat"] == 250
+        assert entry["total_requests"] == 10
+        assert entry["method"] == "POST"
+        assert "duration_ms" in entry
+        assert entry["duration_ms"] >= 0
+        assert "timestamp" in entry
+        assert "latency_sensitivity" in entry
+        assert "url" in entry
+
         DynamoPrefixContext.clear()
 
     async def test_transport_injects_latency_sensitivity_in_agent_hints(self):

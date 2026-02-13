@@ -377,23 +377,24 @@ class Context:
         """
         Returns the current latency sensitivity level.
 
-        When multiple sensitivity levels are pushed onto the stack,
-        returns the one with highest priority (HIGH > MEDIUM > LOW).
+        Returns the most recently pushed sensitivity (top of stack), so the
+        innermost ``@latency_sensitive`` decorator determines the effective
+        level for LLM calls within that scope.
 
         Returns:
             LatencySensitivity: The current effective latency sensitivity.
         """
         stack = self._context_state.latency_sensitivity_stack.get()
-        # Return the sensitivity with the highest priority
-        return max(stack, key=lambda s: s.priority)
+        return stack[-1]
 
     @contextmanager
     def push_latency_sensitivity(self, sensitivity: LatencySensitivity):
         """
         Push a latency sensitivity level onto the stack.
 
-        The effective sensitivity is the maximum priority across all
-        pushed levels. When the context exits, the pushed level is removed.
+        The effective sensitivity is the most recently pushed value (top of
+        stack), so the innermost decorator wins. When the context exits,
+        the pushed level is removed and the previous level is restored.
 
         Args:
             sensitivity: The latency sensitivity level to push.
@@ -404,7 +405,7 @@ class Context:
         Example:
             >>> ctx = Context.get()
             >>> with ctx.push_latency_sensitivity(LatencySensitivity.HIGH):
-            ...     # Inside this block, sensitivity is at least HIGH
+            ...     # Inside this block, sensitivity is HIGH
             ...     pass
         """
         stack = self._context_state.latency_sensitivity_stack.get()

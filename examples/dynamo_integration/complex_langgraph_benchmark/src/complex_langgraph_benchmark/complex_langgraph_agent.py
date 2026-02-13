@@ -35,9 +35,6 @@ from nat.builder.function_info import FunctionInfo
 from nat.cli.register_workflow import register_function
 from nat.data_models.component_ref import LLMRef
 from nat.data_models.function import FunctionBaseConfig
-from nat.profiler.decorators.latency import LatencySensitivity
-from nat.profiler.decorators.latency import latency_sensitive
-
 logger = logging.getLogger(__name__)
 
 
@@ -151,7 +148,6 @@ async def complex_langgraph_agent_function(config: ComplexLanggraphAgentConfig, 
 
     logger.info("Complex LangGraph agent compiled: 10 nodes, 3 parallel branches, 2 cycles")
 
-    @latency_sensitive(LatencySensitivity.HIGH)
     async def run_incident_response(query: str) -> str:
         """
         Process an IT incident through the full analysis pipeline.

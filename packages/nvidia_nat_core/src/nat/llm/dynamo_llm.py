@@ -71,10 +71,15 @@ prefix_total_requests
 
 import json
 import logging
+import threading
+import time
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
+from datetime import datetime
+from datetime import timezone
+from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import Literal
 
@@ -147,6 +152,31 @@ def _interarrival_ms_to_iat(interarrival_ms: float) -> PrefixLevel:
     if interarrival_ms < 500:
         return "MEDIUM"
     return "HIGH"
+
+
+# =============================================================================
+# REQUEST LATENCY LOGGER
+# =============================================================================
+
+
+class _DynamoRequestLogger:
+    """
+    Thread-safe JSONL logger for Dynamo request latency tracking.
+
+    Each line is a JSON object with: timestamp, latency_sensitivity, duration_ms,
+    method, url, prefix_id, osl, iat, total_requests, status_code, function_path.
+    """
+
+    def __init__(self, log_path: str | Path):
+        self._path = Path(log_path)
+        self._lock = threading.Lock()
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+
+    def log(self, entry: dict) -> None:
+        line = json.dumps(entry, default=str) + "\n"
+        with self._lock:
+            with open(self._path, "a", encoding="utf-8") as f:
+                f.write(line)
 
 
 # =============================================================================
@@ -378,6 +408,14 @@ class DynamoModelConfig(OpenAIModelConfig, name="dynamo"):
         "Hints will still be injected via nvext.agent_hints in the request body if prefix_template is set.",
     )
 
+    latency_log_path: str | None = Field(
+        default=None,
+        description="Path to a JSONL file for logging per-request latency data. "
+        "Each line records: timestamp, latency_sensitivity, duration_ms, method, url, "
+        "prefix_id, osl, iat, total_requests, status_code, function_path. "
+        "Set to null/None to disable latency logging.",
+    )
+
     # =========================================================================
     # VALIDATORS (backward compatibility: categorical strings -> integers)
     # =========================================================================
@@ -434,6 +472,7 @@ class DynamoModelConfig(OpenAIModelConfig, name="dynamo"):
             "request_timeout",
             "prediction_trie_path",
             "disable_headers",
+            "latency_log_path",
         })
 
 
@@ -463,6 +502,7 @@ class _DynamoTransport(httpx.AsyncBaseTransport):
         prediction_lookup: "PredictionTrieLookup | None" = None,
         use_raw_values: bool = True,
         disable_headers: bool = True,
+        request_logger: "_DynamoRequestLogger | None" = None,
     ):
         self._transport = transport
         self._total_requests = total_requests
@@ -471,6 +511,7 @@ class _DynamoTransport(httpx.AsyncBaseTransport):
         self._prediction_lookup = prediction_lookup
         self._use_raw_values = use_raw_values
         self._disable_headers = disable_headers
+        self._request_logger = request_logger
 
     async def handle_async_request(self, request: "httpx.Request") -> "httpx.Response":
         # Get prefix ID from context (supports depth-awareness and overrides)
@@ -483,6 +524,15 @@ class _DynamoTransport(httpx.AsyncBaseTransport):
         except Exception:
             # If context not available or latency_sensitivity not implemented yet, default to MEDIUM
             latency_sensitivity = "MEDIUM"
+
+        # Map latency sensitivity to 0,1,2 in a one-liner
+        if latency_sensitivity.upper() == "LOW":
+            latency_sensitivity = "0"
+        elif latency_sensitivity.upper() == "MEDIUM":
+            latency_sensitivity = "5"
+        elif latency_sensitivity.upper() == "HIGH":
+            latency_sensitivity = "40"
+
 
         # Initialize with static config values (always integers)
         total_requests = self._total_requests
@@ -561,7 +611,7 @@ class _DynamoTransport(httpx.AsyncBaseTransport):
                         "total_requests": total_requests,
                         "osl": osl_value,
                         "iat": iat_value,
-                        "latency_sensitivity": latency_sensitivity,
+                        "latency_sensitivity": float(latency_sensitivity),
                     }
 
                     # Add/merge nvext.agent_hints
@@ -603,7 +653,36 @@ class _DynamoTransport(httpx.AsyncBaseTransport):
                      iat_value,
                      latency_sensitivity)
 
-        return await self._transport.handle_async_request(new_request)
+        # Time the actual HTTP round-trip
+        t0 = time.perf_counter()
+        response = await self._transport.handle_async_request(new_request)
+        duration_ms = (time.perf_counter() - t0) * 1000
+
+        # Log request latency data if logger is configured
+        if self._request_logger is not None:
+            # Resolve function path for context
+            function_path: list[str] = []
+            try:
+                ctx = Context.get()
+                function_path = list(ctx.function_path)
+            except Exception:
+                pass
+
+            self._request_logger.log({
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "latency_sensitivity": latency_sensitivity,
+                "duration_ms": round(duration_ms, 2),
+                "method": str(request.method),
+                "url": str(request.url),
+                "prefix_id": prefix_id,
+                "osl": osl_value,
+                "iat": iat_value,
+                "total_requests": total_requests,
+                "status_code": response.status_code,
+                "function_path": function_path,
+            })
+
+        return response
 
     async def aclose(self) -> None:
         """Close the underlying transport."""
@@ -624,6 +703,7 @@ def create_httpx_client_with_dynamo_hooks(
     prediction_lookup: "PredictionTrieLookup | None" = None,
     use_raw_values: bool = True,
     disable_headers: bool = True,
+    latency_log_path: str | None = None,
 ) -> "httpx.AsyncClient":
     """
     Create an httpx.AsyncClient with Dynamo hint injection via custom transport.
@@ -644,6 +724,7 @@ def create_httpx_client_with_dynamo_hooks(
         prediction_lookup: Optional PredictionTrieLookup for dynamic hint injection
         use_raw_values: When True send raw integers; when False convert to LOW/MEDIUM/HIGH
         disable_headers: If True, do not inject hints as HTTP headers (still injects nvext.agent_hints)
+        latency_log_path: Path to JSONL file for per-request latency logging (None to disable)
 
     Returns:
         An httpx.AsyncClient configured with Dynamo hint injection.
@@ -653,6 +734,11 @@ def create_httpx_client_with_dynamo_hooks(
     # Note: prefix_template is kept for API compatibility but no longer used.
     # Prefix IDs are now managed by DynamoPrefixContext with depth-awareness.
     _ = prefix_template
+
+    # Create request logger if path is configured
+    request_logger = _DynamoRequestLogger(latency_log_path) if latency_log_path else None
+    if request_logger:
+        logger.info("Dynamo request latency logging enabled: %s", latency_log_path)
 
     # Create base transport and wrap with custom transport
     base_transport = httpx.AsyncHTTPTransport()
@@ -664,6 +750,7 @@ def create_httpx_client_with_dynamo_hooks(
         prediction_lookup=prediction_lookup,
         use_raw_values=use_raw_values,
         disable_headers=disable_headers,
+        request_logger=request_logger,
     )
 
     return httpx.AsyncClient(

@@ -36,12 +36,13 @@ function_groups:
 llms:
   dynamo_llm:
     _type: dynamo
-    model_name: llama_70b
+    model_name: qwen3
     base_url: http://localhost:8099/v1
     api_key: dummy
     temperature: 0.0
     max_tokens: 2048
     prefix_template: "complex-bench-{uuid}"
+    latency_log_path: ./no_prio_load.jsonl
     # Static fallback values (used when prediction trie lookup fails)
     prefix_total_requests: 12
     prefix_osl: MEDIUM
@@ -59,7 +60,7 @@ workflow:
 
 eval:
   general:
-    max_concurrency: 4
+    max_concurrency: 3
 
     output:
       dir: ./examples/dynamo_integration/complex_langgraph_benchmark/outputs/full_eval/
@@ -94,7 +95,3 @@ eval:
       _type: avg_llm_latency
     avg_workflow_runtime:
       _type: avg_workflow_runtime
-    avg_num_llm_calls:
-      _type: avg_num_llm_calls
-    avg_tokens_per_llm_end:
-      _type: avg_tokens_per_llm_end
