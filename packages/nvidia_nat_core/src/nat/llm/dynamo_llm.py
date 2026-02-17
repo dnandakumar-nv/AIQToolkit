@@ -531,7 +531,7 @@ class _DynamoTransport(httpx.AsyncBaseTransport):
         elif latency_sensitivity.upper() == "MEDIUM":
             latency_sensitivity = "5"
         elif latency_sensitivity.upper() == "HIGH":
-            latency_sensitivity = "40"
+            latency_sensitivity = "120"
 
 
         # Initialize with static config values (always integers)
@@ -612,6 +612,7 @@ class _DynamoTransport(httpx.AsyncBaseTransport):
                         "osl": osl_value,
                         "iat": iat_value,
                         "latency_sensitivity": float(latency_sensitivity),
+                        "pin": True if total_requests > 1 else False,  # Pin if more than 1 expected request
                     }
 
                     # Add/merge nvext.agent_hints

@@ -319,16 +319,16 @@ class LoadGenerator:
 def main():
     parser = argparse.ArgumentParser(description="Sustained high-OSL high-OSL load generator")
     parser.add_argument(
-        "--concurrent", "-n", type=int, default=32, help="Number of concurrent requests to maintain (default: 30)"
+        "--concurrent", "-n", type=int, default=12, help="Number of concurrent requests to maintain (default: 30)"
     )
     parser.add_argument(
-        "--model", "-m", type=str, default="qwen3", help="Model name"
+        "--model", "-m", type=str, default="Qwen/Qwen3-14B-FP8", help="Model name"
     )
     parser.add_argument(
-        "--url", type=str, default="http://localhost:8099/v1/chat/completions", help="API endpoint URL"
+        "--url", type=str, default="http://localhost:8001/v1/chat/completions", help="API endpoint URL"
     )
     parser.add_argument(
-        "--max-tokens", type=int, default=16384, help="Max output tokens per request (default: 4096)"
+        "--max-tokens", type=int, default=2048, help="Max output tokens per request (default: 4096)"
     )
     parser.add_argument(
         "--priority", "-p", type=int, default=0, help="Request priority value (default: 0 = low)"
